@@ -1,0 +1,22 @@
+{
+  "decisions": [
+    {
+      "id": "N-BW-UNREADY-ROUTING",
+      "status": "PENDING_OFFICER_DECISION",
+      "question": "For an Unready case whose Next Purpose/Canonical Stage is N.B.W._Unready or B.W._Unready, should it always go to the N.B.W. / B.W. section regardless of case prefix, or should the case prefix rule continue to determine the section?",
+      "affected_stages": [
+        "N.B.W._Unready",
+        "B.W._Unready"
+      ]
+    },
+    {
+      "id": "READY-UNREADY-STAGE",
+      "status": "PENDING_OFFICER_DECISION",
+      "question": "If a case is marked Ready but its Next Purpose corresponds to a stage that appears only in the Unready sections of the final board (for example Steps or Reply/Say), where should that case be listed? (A) A specific existing Ready-side row? (B) The relevant Unready section despite the Ready flag? (C) A new Ready-side row? (D) Another rule applies?",
+      "affected_stages": [
+        "Steps",
+        "Reply/Say"
+      ]
+    }
+  ]
+}
