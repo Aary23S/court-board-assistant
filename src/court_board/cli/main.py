@@ -1,5 +1,6 @@
 import argparse
 import sys
+import datetime
 from collections import Counter
 from pathlib import Path
 from ..io.importer import CourtBoardImporter
@@ -7,6 +8,8 @@ from ..classification.engine import StageClassificationEngine
 from ..classification.collection import StageCollection
 from ..rendering.stagewise_ods import StageWiseRenderer
 from ..validation.business_rule_validator import BusinessRuleValidator
+from ..routing.engine import RoutingEngine
+from ..rendering.routing_ods import RoutingReportRenderer
 
 def main():
     parser = argparse.ArgumentParser(description="Court Board Assistant CLI")
@@ -22,6 +25,10 @@ def main():
 
     # Rules command
     rules_parser = subparsers.add_parser("rules", help="Generate Business Rule Report")
+
+    # Route command
+    route_parser = subparsers.add_parser("route", help="Route cases to the final board template")
+    route_parser.add_argument("file", type=str, help="Path to the source file")
 
     args = parser.parse_args()
 
@@ -146,6 +153,65 @@ def main():
             print("\nDISABLED\n")
             for r in sorted(report["DISABLED"], key=lambda x: x.stage):
                 print(r.stage)
+
+    elif args.command == "route":
+        # 1. Import source
+        importer = CourtBoardImporter(args.file)
+        records, validations = importer.load()
+        
+        # 2. Classify
+        classification_engine = StageClassificationEngine()
+        
+        # 3. Route
+        routing_engine = RoutingEngine()
+        routing_results = []
+        for r in records:
+            cls_res = classification_engine.classify(r)
+            # if unmapped, fallback to original purpose so routing invalid catches it?
+            # actually canonical stage might be None.
+            c_stage = cls_res.canonical_stage or cls_res.original_next_purpose
+            route_res = routing_engine.route(r, c_stage)
+            routing_results.append(route_res)
+            
+        # Accountability
+        routed = [r for r in routing_results if r.routing_status == "ROUTED"]
+        unresolved = [r for r in routing_results if r.routing_status == "UNRESOLVED_ROUTING"]
+        invalid = [r for r in routing_results if r.routing_status == "INVALID_INPUT"]
+        
+        assert len(routed) + len(unresolved) + len(invalid) == len(records), "No case lost invariant failed!"
+        
+        # Output
+        date_str = datetime.datetime.now().strftime("%Y%m%d")
+        output_path = f"output/{date_str}_routing_report.ods"
+        renderer = RoutingReportRenderer(routing_results)
+        renderer.render(output_path)
+        
+        # Print summary
+        print(f"SOURCE CASES: {len(records)}\n")
+        print(f"ROUTED: {len(routed)}")
+        print(f"UNRESOLVED ROUTING: {len(unresolved)}")
+        print(f"INVALID INPUT: {len(invalid)}\n")
+        
+        if unresolved:
+            print("-" * 50)
+            print("UNRESOLVED ROUTING")
+            print("-" * 50)
+            print(f"{'Case':<25} | {'Stage':<30} | {'Status':<10} | {'Prefix':<15} | {'Reason'}")
+            for r in unresolved:
+                print(f"{r.source_case.cases or '':<25} | {r.canonical_stage:<30} | {r.readiness_status or '':<10} | {r.case_prefix:<15} | {r.routing_reason}")
+            print()
+            
+        if routed:
+            print("-" * 50)
+            print("ROUTED CASES")
+            print("-" * 50)
+            print(f"{'Section':<15} | {'Row':<30} | {'Case':<25} | {'Stage'}")
+            for r in routed[:20]: # show first 20 as sample
+                print(f"{r.board_section:<15} | {r.board_row:<30} | {r.source_case.cases or '':<25} | {r.canonical_stage}")
+            if len(routed) > 20:
+                print(f"... and {len(routed)-20} more routed cases.")
+                
+        print(f"\nReport written to: {output_path}")
 
 if __name__ == "__main__":
     main()

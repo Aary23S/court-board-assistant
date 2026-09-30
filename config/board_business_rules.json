@@ -1,3 +1,44 @@
 {
-  "rules": []
+  "rules": [
+    {
+      "stage": "*",
+      "board_section": "M.A.",
+      "status": "APPROVED",
+      "ready_behavior": "UNREADY",
+      "source": "OFFICER_CONFIRMED",
+      "source_note": "RULE A: Unready + Cri.M.A. \u2192 M.A."
+    },
+    {
+      "stage": "*",
+      "board_section": "D.V.",
+      "status": "APPROVED",
+      "ready_behavior": "UNREADY",
+      "source": "OFFICER_CONFIRMED",
+      "source_note": "RULE B: Unready + PWDVA Appln. \u2192 D.V."
+    },
+    {
+      "stage": "*",
+      "board_section": "R.C.C.",
+      "status": "APPROVED",
+      "ready_behavior": "UNREADY",
+      "source": "OFFICER_CONFIRMED",
+      "source_note": "RULE C: Unready + R.C.C. \u2192 R.C.C."
+    },
+    {
+      "stage": "*",
+      "board_section": "S.C.C.",
+      "status": "APPROVED",
+      "ready_behavior": "UNREADY",
+      "source": "OFFICER_CONFIRMED",
+      "source_note": "RULE D: Unready + S.C.C. \u2192 S.C.C."
+    },
+    {
+      "stage": "*",
+      "board_section": null,
+      "status": "APPROVED",
+      "ready_behavior": "BOTH",
+      "source": "OFFICER_CONFIRMED",
+      "source_note": "RULE E: Ready / Unready determines board side."
+    }
+  ]
 }

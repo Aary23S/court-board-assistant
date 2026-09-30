@@ -46,7 +46,7 @@ class BusinessRuleValidator:
         valid_ready = {"READY", "UNREADY", "BOTH", "SOURCE_DRIVEN", "NOT_APPLICABLE", None}
         
         for rule in self.config.rules:
-            if rule.stage not in self.canonical_stages:
+            if rule.stage != "*" and rule.stage not in self.canonical_stages:
                 raise ValueError(f"Rule references unknown canonical stage: '{rule.stage}'")
                 
             if rule.board_section and rule.board_section not in self.board_sections:
@@ -61,7 +61,7 @@ class BusinessRuleValidator:
             if rule.status == "APPROVED" and not rule.source:
                 raise ValueError(f"APPROVED rule for '{rule.stage}' missing provenance (source).")
                 
-            if rule.stage in seen_stages:
+            if rule.stage in seen_stages and rule.stage != "*":
                 # Duplicate rule check
                 prev_rule = seen_stages[rule.stage]
                 if prev_rule.status == "APPROVED" and rule.status == "APPROVED":
@@ -82,7 +82,7 @@ class BusinessRuleValidator:
         }
         
         # Build map of stage to its defined rule (if any)
-        rule_map = {r.stage: r for r in self.config.rules}
+        rule_map = {r.stage: r for r in self.config.rules if r.stage != "*"}
         
         for stage in self.canonical_stages:
             if stage in rule_map:
