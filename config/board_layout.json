@@ -1,0 +1,74 @@
+{
+  "sections": [
+    {
+      "id": "hearing",
+      "name": "Hearing",
+      "order": 1,
+      "ready_unready_behavior": "Ready",
+      "stages": ["Hearing"]
+    },
+    {
+      "id": "part_heard",
+      "name": "Part Heard",
+      "order": 2,
+      "ready_unready_behavior": "Ready",
+      "stages": []
+    },
+    {
+      "id": "313_0",
+      "name": "313.0",
+      "order": 3,
+      "ready_unready_behavior": "Ready",
+      "stages": []
+    },
+    {
+      "id": "argument",
+      "name": "Argument",
+      "order": 4,
+      "ready_unready_behavior": "Ready",
+      "stages": []
+    },
+    {
+      "id": "judgement",
+      "name": "Judgement",
+      "order": 5,
+      "ready_unready_behavior": "Ready",
+      "stages": []
+    },
+    {
+      "id": "m_a",
+      "name": "M.A.",
+      "order": 6,
+      "ready_unready_behavior": "Unready",
+      "stages": []
+    },
+    {
+      "id": "d_v",
+      "name": "D.V.",
+      "order": 7,
+      "ready_unready_behavior": "Unready",
+      "stages": []
+    },
+    {
+      "id": "r_c_c",
+      "name": "R.C.C.",
+      "order": 8,
+      "ready_unready_behavior": "Unready",
+      "stages": []
+    },
+    {
+      "id": "s_c_c",
+      "name": "S.C.C.",
+      "order": 9,
+      "ready_unready_behavior": "Unready",
+      "stages": []
+    },
+    {
+      "id": "nbw_bw",
+      "name": "N.B.W. / B.W.",
+      "order": 10,
+      "ready_unready_behavior": "Unready",
+      "stages": []
+    }
+  ]
+}

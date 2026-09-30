@@ -1,0 +1,696 @@
+{
+  "sections": [
+    {
+      "id": "hearing",
+      "name": "Hearing",
+      "order": 1,
+      "ready_unready_behavior": "READY",
+      "rows": [
+        {
+          "id": "hearing.evidence",
+          "display_label": "Evidence",
+          "order": 1,
+          "canonical_stage_reference": "Evidence"
+        },
+        {
+          "id": "hearing.n_b_w_ready",
+          "display_label": "N.B.W._Ready",
+          "order": 2,
+          "canonical_stage_reference": "N.B.W._Ready"
+        },
+        {
+          "id": "hearing.dismissal_order",
+          "display_label": "Dismissal Order",
+          "order": 3,
+          "canonical_stage_reference": "Dismissal Order"
+        },
+        {
+          "id": "hearing.defence_evidence",
+          "display_label": "Defence Evidence",
+          "order": 4,
+          "canonical_stage_reference": "Defence Evidence"
+        },
+        {
+          "id": "hearing.hearing",
+          "display_label": "Hearing",
+          "order": 5,
+          "canonical_stage_reference": "Hearing"
+        },
+        {
+          "id": "hearing.formal_hearing",
+          "display_label": "Formal Hearing",
+          "order": 6,
+          "canonical_stage_reference": "Formal Hearing"
+        },
+        {
+          "id": "hearing.argument_on_exh_ready",
+          "display_label": "Argument on Exh.____Ready",
+          "order": 7,
+          "canonical_stage_reference": "Argument on Exh.____Ready"
+        },
+        {
+          "id": "hearing.filing_of_say_on_exh_ready",
+          "display_label": "Filing of Say on Exh___Ready",
+          "order": 8,
+          "canonical_stage_reference": "Filing of Say on Exh___Ready"
+        },
+        {
+          "id": "hearing.r_and_p_ready",
+          "display_label": "R and P Ready",
+          "order": 9,
+          "canonical_stage_reference": "R and P Ready"
+        },
+        {
+          "id": "hearing.b_w_ready",
+          "display_label": "B.W._Ready",
+          "order": 10,
+          "canonical_stage_reference": "B.W._Ready"
+        },
+        {
+          "id": "hearing.say_hearing_on_exh_ready",
+          "display_label": "Say / Hearing on Exh____Ready",
+          "order": 11,
+          "canonical_stage_reference": "Say / Hearing on Exh____Ready"
+        },
+        {
+          "id": "hearing.ex_party_hearing",
+          "display_label": "Ex_Party Hearing",
+          "order": 12,
+          "canonical_stage_reference": "Ex_Party Hearing"
+        }
+      ]
+    },
+    {
+      "id": "part_heard",
+      "name": "Part Heard",
+      "order": 2,
+      "ready_unready_behavior": "READY",
+      "rows": [
+        {
+          "id": "part_heard.evidence_part_heard",
+          "display_label": "Evidence Part Heard",
+          "order": 1,
+          "canonical_stage_reference": "Evidence Part Heard"
+        }
+      ]
+    },
+    {
+      "id": "313",
+      "name": "313",
+      "order": 3,
+      "ready_unready_behavior": "READY",
+      "rows": [
+        {
+          "id": "313.statement_u_sec_313_cr_p_c",
+          "display_label": "Statement U/sec.313 Cr.P.C.",
+          "order": 1,
+          "canonical_stage_reference": "Statement U/sec.313 Cr.P.C."
+        }
+      ]
+    },
+    {
+      "id": "argument",
+      "name": "Argument",
+      "order": 4,
+      "ready_unready_behavior": "READY",
+      "rows": [
+        {
+          "id": "argument.arguments",
+          "display_label": "Arguments",
+          "order": 1,
+          "canonical_stage_reference": "Arguments"
+        }
+      ]
+    },
+    {
+      "id": "judgement",
+      "name": "Judgement",
+      "order": 5,
+      "ready_unready_behavior": "READY",
+      "rows": [
+        {
+          "id": "judgement.judgement",
+          "display_label": "Judgement",
+          "order": 1,
+          "canonical_stage_reference": null
+        }
+      ]
+    },
+    {
+      "id": "m_a",
+      "name": "M.A.",
+      "order": 6,
+      "ready_unready_behavior": "UNREADY",
+      "rows": [
+        {
+          "id": "m_a.dismissal_order",
+          "display_label": "Dismissal Order",
+          "order": 1,
+          "canonical_stage_reference": "Dismissal Order"
+        },
+        {
+          "id": "m_a.awaiting_r_and_p",
+          "display_label": "Awaiting R and P",
+          "order": 2,
+          "canonical_stage_reference": "Awaiting R and P"
+        },
+        {
+          "id": "m_a.steps",
+          "display_label": "Steps",
+          "order": 3,
+          "canonical_stage_reference": "Steps"
+        },
+        {
+          "id": "m_a.report",
+          "display_label": "Report",
+          "order": 4,
+          "canonical_stage_reference": "Report"
+        },
+        {
+          "id": "m_a.argument_on_exh_unready",
+          "display_label": "Argument on Exh.____Unready",
+          "order": 5,
+          "canonical_stage_reference": "Argument on Exh.____Unready"
+        },
+        {
+          "id": "m_a.order_on_exh",
+          "display_label": "Order on Exh",
+          "order": 6,
+          "canonical_stage_reference": "Order on Exh"
+        },
+        {
+          "id": "m_a.reply_say",
+          "display_label": "Reply/Say",
+          "order": 7,
+          "canonical_stage_reference": "Reply/Say"
+        },
+        {
+          "id": "m_a.depositing_amount",
+          "display_label": "Depositing Amount",
+          "order": 8,
+          "canonical_stage_reference": "Depositing Amount"
+        },
+        {
+          "id": "m_a.steps_unready",
+          "display_label": "Steps_Unready",
+          "order": 9,
+          "canonical_stage_reference": "Steps_Unready"
+        },
+        {
+          "id": "m_a.verification",
+          "display_label": "Verification",
+          "order": 10,
+          "canonical_stage_reference": "Verification"
+        },
+        {
+          "id": "m_a.notice_unready",
+          "display_label": "Notice_Unready",
+          "order": 11,
+          "canonical_stage_reference": "Notice_Unready"
+        },
+        {
+          "id": "m_a.awaiting_notice",
+          "display_label": "Awaiting Notice",
+          "order": 12,
+          "canonical_stage_reference": "Awaiting Notice"
+        },
+        {
+          "id": "m_a.compromise",
+          "display_label": "Compromise",
+          "order": 13,
+          "canonical_stage_reference": "Compromise"
+        },
+        {
+          "id": "m_a.first_order",
+          "display_label": "First Order",
+          "order": 14,
+          "canonical_stage_reference": "First Order"
+        },
+        {
+          "id": "m_a.appearance",
+          "display_label": "Appearance",
+          "order": 15,
+          "canonical_stage_reference": "Appearance"
+        },
+        {
+          "id": "m_a.order",
+          "display_label": "Order",
+          "order": 16,
+          "canonical_stage_reference": "Order"
+        }
+      ]
+    },
+    {
+      "id": "d_v",
+      "name": "D.V.",
+      "order": 7,
+      "ready_unready_behavior": "UNREADY",
+      "rows": [
+        {
+          "id": "d_v.dismissal_order",
+          "display_label": "Dismissal Order",
+          "order": 1,
+          "canonical_stage_reference": "Dismissal Order"
+        },
+        {
+          "id": "d_v.steps",
+          "display_label": "Steps",
+          "order": 2,
+          "canonical_stage_reference": "Steps"
+        },
+        {
+          "id": "d_v.argument_on_exh_unready",
+          "display_label": "Argument on Exh.____Unready",
+          "order": 3,
+          "canonical_stage_reference": "Argument on Exh.____Unready"
+        },
+        {
+          "id": "d_v.awaiting_warrant",
+          "display_label": "Awaiting Warrant",
+          "order": 4,
+          "canonical_stage_reference": "Awaiting Warrant"
+        },
+        {
+          "id": "d_v.reply_say",
+          "display_label": "Reply/Say",
+          "order": 5,
+          "canonical_stage_reference": "Reply/Say"
+        },
+        {
+          "id": "d_v.depositing_amount",
+          "display_label": "Depositing Amount",
+          "order": 6,
+          "canonical_stage_reference": "Depositing Amount"
+        },
+        {
+          "id": "d_v.verification",
+          "display_label": "Verification",
+          "order": 7,
+          "canonical_stage_reference": "Verification"
+        },
+        {
+          "id": "d_v.filing_of_say_on_exh_unready",
+          "display_label": "Filing of Say on Exh___Unready",
+          "order": 8,
+          "canonical_stage_reference": "Filing of Say on Exh___Unready"
+        },
+        {
+          "id": "d_v.notice_unready",
+          "display_label": "Notice_Unready",
+          "order": 9,
+          "canonical_stage_reference": "Notice_Unready"
+        },
+        {
+          "id": "d_v.awaiting_notice",
+          "display_label": "Awaiting Notice",
+          "order": 10,
+          "canonical_stage_reference": "Awaiting Notice"
+        },
+        {
+          "id": "d_v.compromise",
+          "display_label": "Compromise",
+          "order": 11,
+          "canonical_stage_reference": "Compromise"
+        },
+        {
+          "id": "d_v.first_order",
+          "display_label": "First Order",
+          "order": 12,
+          "canonical_stage_reference": "First Order"
+        },
+        {
+          "id": "d_v.appearance",
+          "display_label": "Appearance",
+          "order": 13,
+          "canonical_stage_reference": "Appearance"
+        },
+        {
+          "id": "d_v.order",
+          "display_label": "Order",
+          "order": 14,
+          "canonical_stage_reference": "Order"
+        }
+      ]
+    },
+    {
+      "id": "r_c_c",
+      "name": "R.C.C.",
+      "order": 8,
+      "ready_unready_behavior": "UNREADY",
+      "rows": [
+        {
+          "id": "r_c_c.proclomation",
+          "display_label": "Proclomation",
+          "order": 1,
+          "canonical_stage_reference": "Proclomation"
+        },
+        {
+          "id": "r_c_c.dismissal_order",
+          "display_label": "Dismissal Order",
+          "order": 2,
+          "canonical_stage_reference": "Dismissal Order"
+        },
+        {
+          "id": "r_c_c.public_notice_proclamation",
+          "display_label": "Public Notice/Proclamation",
+          "order": 3,
+          "canonical_stage_reference": "Public Notice/Proclamation"
+        },
+        {
+          "id": "r_c_c.dormant_file",
+          "display_label": "Dormant File",
+          "order": 4,
+          "canonical_stage_reference": "Dormant File"
+        },
+        {
+          "id": "r_c_c.awaiting_r_and_p",
+          "display_label": "Awaiting R and P",
+          "order": 5,
+          "canonical_stage_reference": "Awaiting R and P"
+        },
+        {
+          "id": "r_c_c.steps",
+          "display_label": "Steps",
+          "order": 6,
+          "canonical_stage_reference": "Steps"
+        },
+        {
+          "id": "r_c_c.stayed_by_district_court",
+          "display_label": "Stayed by District Court",
+          "order": 7,
+          "canonical_stage_reference": "Stayed by District Court"
+        },
+        {
+          "id": "r_c_c.report",
+          "display_label": "Report",
+          "order": 8,
+          "canonical_stage_reference": "Report"
+        },
+        {
+          "id": "r_c_c.argument_on_exh_unready",
+          "display_label": "Argument on Exh.____Unready",
+          "order": 9,
+          "canonical_stage_reference": "Argument on Exh.____Unready"
+        },
+        {
+          "id": "r_c_c.awaiting_summons",
+          "display_label": "Awaiting Summons",
+          "order": 10,
+          "canonical_stage_reference": "Awaiting Summons"
+        },
+        {
+          "id": "r_c_c.evidence_before_charge",
+          "display_label": "Evidence Before Charge",
+          "order": 11,
+          "canonical_stage_reference": "Evidence Before Charge"
+        },
+        {
+          "id": "r_c_c.lok_nyayalaya",
+          "display_label": "Lok-Nyayalaya",
+          "order": 12,
+          "canonical_stage_reference": "Lok-Nyayalaya"
+        },
+        {
+          "id": "r_c_c.awaiting_warrant",
+          "display_label": "Awaiting Warrant",
+          "order": 13,
+          "canonical_stage_reference": "Awaiting Warrant"
+        },
+        {
+          "id": "r_c_c.order_on_exh",
+          "display_label": "Order on Exh",
+          "order": 14,
+          "canonical_stage_reference": "Order on Exh"
+        },
+        {
+          "id": "r_c_c.charge",
+          "display_label": "Charge",
+          "order": 15,
+          "canonical_stage_reference": "Charge"
+        },
+        {
+          "id": "r_c_c.stayed_by_honble_high_court",
+          "display_label": "Stayed by Honble High Court",
+          "order": 16,
+          "canonical_stage_reference": "Stayed by Honble High Court"
+        },
+        {
+          "id": "r_c_c.reply_say",
+          "display_label": "Reply/Say",
+          "order": 17,
+          "canonical_stage_reference": "Reply/Say"
+        },
+        {
+          "id": "r_c_c.steps_unready",
+          "display_label": "Steps_Unready",
+          "order": 18,
+          "canonical_stage_reference": "Steps_Unready"
+        },
+        {
+          "id": "r_c_c.filing_of_surety",
+          "display_label": "Filing of Surety",
+          "order": 19,
+          "canonical_stage_reference": "Filing of Surety"
+        },
+        {
+          "id": "r_c_c.verification",
+          "display_label": "Verification",
+          "order": 20,
+          "canonical_stage_reference": "Verification"
+        },
+        {
+          "id": "r_c_c.plea_particulars",
+          "display_label": "Plea / Particulars",
+          "order": 21,
+          "canonical_stage_reference": "Plea / Particulars"
+        },
+        {
+          "id": "r_c_c.filing_of_say_on_exh_unready",
+          "display_label": "Filing of Say on Exh___Unready",
+          "order": 22,
+          "canonical_stage_reference": "Filing of Say on Exh___Unready"
+        },
+        {
+          "id": "r_c_c.r_c_c_243_2018",
+          "display_label": "R.C.C./243/2018",
+          "order": 23,
+          "canonical_stage_reference": null
+        },
+        {
+          "id": "r_c_c.unready_board",
+          "display_label": "Unready Board",
+          "order": 24,
+          "canonical_stage_reference": "Unready Board"
+        },
+        {
+          "id": "r_c_c.compliance",
+          "display_label": "Compliance",
+          "order": 25,
+          "canonical_stage_reference": "Compliance"
+        },
+        {
+          "id": "r_c_c.first_order",
+          "display_label": "First Order",
+          "order": 26,
+          "canonical_stage_reference": "First Order"
+        },
+        {
+          "id": "r_c_c.production_of_accused",
+          "display_label": "Production of Accused",
+          "order": 27,
+          "canonical_stage_reference": "Production of Accused"
+        }
+      ]
+    },
+    {
+      "id": "s_c_c",
+      "name": "S.C.C.",
+      "order": 9,
+      "ready_unready_behavior": "UNREADY",
+      "rows": [
+        {
+          "id": "s_c_c.proclomation",
+          "display_label": "Proclomation",
+          "order": 1,
+          "canonical_stage_reference": "Proclomation"
+        },
+        {
+          "id": "s_c_c.dismissal_order",
+          "display_label": "Dismissal Order",
+          "order": 2,
+          "canonical_stage_reference": "Dismissal Order"
+        },
+        {
+          "id": "s_c_c.public_notice_proclamation",
+          "display_label": "Public Notice/Proclamation",
+          "order": 3,
+          "canonical_stage_reference": "Public Notice/Proclamation"
+        },
+        {
+          "id": "s_c_c.dormant_file",
+          "display_label": "Dormant File",
+          "order": 4,
+          "canonical_stage_reference": "Dormant File"
+        },
+        {
+          "id": "s_c_c.awaiting_r_and_p",
+          "display_label": "Awaiting R and P",
+          "order": 5,
+          "canonical_stage_reference": "Awaiting R and P"
+        },
+        {
+          "id": "s_c_c.steps",
+          "display_label": "Steps",
+          "order": 6,
+          "canonical_stage_reference": "Steps"
+        },
+        {
+          "id": "s_c_c.stayed_by_district_court",
+          "display_label": "Stayed by District Court",
+          "order": 7,
+          "canonical_stage_reference": "Stayed by District Court"
+        },
+        {
+          "id": "s_c_c.report",
+          "display_label": "Report",
+          "order": 8,
+          "canonical_stage_reference": "Report"
+        },
+        {
+          "id": "s_c_c.argument_on_exh_unready",
+          "display_label": "Argument on Exh.____Unready",
+          "order": 9,
+          "canonical_stage_reference": "Argument on Exh.____Unready"
+        },
+        {
+          "id": "s_c_c.awaiting_summons",
+          "display_label": "Awaiting Summons",
+          "order": 10,
+          "canonical_stage_reference": "Awaiting Summons"
+        },
+        {
+          "id": "s_c_c.evidence_before_charge",
+          "display_label": "Evidence Before Charge",
+          "order": 11,
+          "canonical_stage_reference": "Evidence Before Charge"
+        },
+        {
+          "id": "s_c_c.lok_nyayalaya",
+          "display_label": "Lok-Nyayalaya",
+          "order": 12,
+          "canonical_stage_reference": "Lok-Nyayalaya"
+        },
+        {
+          "id": "s_c_c.awaiting_warrant",
+          "display_label": "Awaiting Warrant",
+          "order": 13,
+          "canonical_stage_reference": "Awaiting Warrant"
+        },
+        {
+          "id": "s_c_c.order_on_exh",
+          "display_label": "Order on Exh",
+          "order": 14,
+          "canonical_stage_reference": "Order on Exh"
+        },
+        {
+          "id": "s_c_c.charge",
+          "display_label": "Charge",
+          "order": 15,
+          "canonical_stage_reference": "Charge"
+        },
+        {
+          "id": "s_c_c.stayed_by_honble_high_court",
+          "display_label": "Stayed by Honble High Court",
+          "order": 16,
+          "canonical_stage_reference": "Stayed by Honble High Court"
+        },
+        {
+          "id": "s_c_c.reply_say",
+          "display_label": "Reply/Say",
+          "order": 17,
+          "canonical_stage_reference": "Reply/Say"
+        },
+        {
+          "id": "s_c_c.steps_unready",
+          "display_label": "Steps_Unready",
+          "order": 18,
+          "canonical_stage_reference": "Steps_Unready"
+        },
+        {
+          "id": "s_c_c.filing_of_surety",
+          "display_label": "Filing of Surety",
+          "order": 19,
+          "canonical_stage_reference": "Filing of Surety"
+        },
+        {
+          "id": "s_c_c.verification",
+          "display_label": "Verification",
+          "order": 20,
+          "canonical_stage_reference": "Verification"
+        },
+        {
+          "id": "s_c_c.plea_particulars",
+          "display_label": "Plea / Particulars",
+          "order": 21,
+          "canonical_stage_reference": "Plea / Particulars"
+        },
+        {
+          "id": "s_c_c.filing_of_say_on_exh_unready",
+          "display_label": "Filing of Say on Exh___Unready",
+          "order": 22,
+          "canonical_stage_reference": "Filing of Say on Exh___Unready"
+        },
+        {
+          "id": "s_c_c.r_c_c_243_2018",
+          "display_label": "R.C.C./243/2018",
+          "order": 23,
+          "canonical_stage_reference": null
+        },
+        {
+          "id": "s_c_c.unready_board",
+          "display_label": "Unready Board",
+          "order": 24,
+          "canonical_stage_reference": "Unready Board"
+        },
+        {
+          "id": "s_c_c.compliance",
+          "display_label": "Compliance",
+          "order": 25,
+          "canonical_stage_reference": "Compliance"
+        },
+        {
+          "id": "s_c_c.first_order",
+          "display_label": "First Order",
+          "order": 26,
+          "canonical_stage_reference": "First Order"
+        },
+        {
+          "id": "s_c_c.production_of_accused",
+          "display_label": "Production of Accused",
+          "order": 27,
+          "canonical_stage_reference": "Production of Accused"
+        }
+      ]
+    },
+    {
+      "id": "n_b_w_b_w",
+      "name": "N.B.W. / B.W.",
+      "order": 10,
+      "ready_unready_behavior": "UNREADY",
+      "rows": [
+        {
+          "id": "n_b_w_b_w.n_b_w_unready",
+          "display_label": "N.B.W._Unready",
+          "order": 1,
+          "canonical_stage_reference": "N.B.W._Unready"
+        },
+        {
+          "id": "n_b_w_b_w.b_w_unready",
+          "display_label": "B.W._Unready",
+          "order": 2,
+          "canonical_stage_reference": "B.W._Unready"
+        }
+      ]
+    }
+  ]
+}
