@@ -1,9 +1,9 @@
 import json
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Set
 from pathlib import Path
 
 from ..domain.models import CaseRecord
-from ..domain.routing import BoardRoutingResult
+from ..domain.routing import BoardRoutingResult, BoardDestination
 from ..domain.board_template import BoardTemplate, BoardSection, BoardRow
 from .prefix_extractor import CasePrefixExtractor
 
@@ -17,14 +17,6 @@ class RoutingEngine:
         self.canonical_stages = self._load_canonical_stages(stages_path)
         self.prefix_extractor = CasePrefixExtractor()
         
-        # Hardcoded Officer Rules (A, B, C, D)
-        self.unready_prefix_to_section = {
-            "Cri.M.A.": "M.A.",
-            "PWDVA Appln.": "D.V.",
-            "R.C.C.": "R.C.C.",
-            "S.C.C.": "S.C.C."
-        }
-
     def _load_template(self, path: str) -> BoardTemplate:
         p = Path(path)
         if not p.exists():
@@ -41,22 +33,48 @@ class RoutingEngine:
             data = json.load(f)
             return {s["canonical_name"] for s in data}
 
-    def _find_rows_in_section(self, section_name: str, canonical_stage: str) -> List[BoardRow]:
+    def _find_row_in_section(self, section_name: str, canonical_stage: str) -> List[BoardDestination]:
         for sec in self.template.sections:
             if sec.name == section_name:
-                return [r for r in sec.rows if r.canonical_stage_reference == canonical_stage]
+                matches = [r for r in sec.rows if r.canonical_stage_reference == canonical_stage]
+                if len(matches) == 1:
+                    row = matches[0]
+                    return [BoardDestination(
+                        section_id=sec.id,
+                        section_name=sec.name,
+                        row_id=row.id,
+                        row_name=row.display_label,
+                        source_stage=canonical_stage,
+                        routing_reason=f"Matched stage '{canonical_stage}' in section '{section_name}'"
+                    )]
+                elif len(matches) > 1:
+                    return []
+                else:
+                    return [BoardDestination(
+                        section_id=sec.id,
+                        section_name=sec.name,
+                        row_id=None,
+                        row_name=None,
+                        source_stage=canonical_stage,
+                        routing_reason=f"Section-level placement in '{section_name}'"
+                    )]
         return []
-
-    def _find_rows_by_side(self, ready_side: bool, canonical_stage: str) -> List[Tuple[BoardSection, BoardRow]]:
-        matches = []
-        target_behavior = "READY" if ready_side else "UNREADY"
         
+    def _get_generic_hearing_destination(self, source_stage: str) -> List[BoardDestination]:
         for sec in self.template.sections:
-            if sec.ready_unready_behavior == target_behavior:
-                for r in sec.rows:
-                    if r.canonical_stage_reference == canonical_stage:
-                        matches.append((sec, r))
-        return matches
+            if sec.name == "Hearing":
+                matches = [r for r in sec.rows if r.canonical_stage_reference == "Hearing"]
+                if len(matches) == 1:
+                    row = matches[0]
+                    return [BoardDestination(
+                        section_id=sec.id,
+                        section_name=sec.name,
+                        row_id=row.id,
+                        row_name=row.display_label,
+                        source_stage=source_stage,
+                        routing_reason="Ready cases are placed in Hearing."
+                    )]
+        return []
 
     def _normalize_readiness(self, status: str) -> str:
         if not status:
@@ -76,7 +94,7 @@ class RoutingEngine:
             "source_row_index": case.source_row_index,
             "canonical_stage": canonical_stage,
             "readiness_status": ready_status,
-            "case_prefix": prefix,
+            "case_prefix": prefix
         }
 
         # 1. Invalid Input Check
@@ -97,29 +115,20 @@ class RoutingEngine:
 
         # 3. Ready Routing
         if ready_status == "Ready":
-            matches = self._find_rows_by_side(ready_side=True, canonical_stage=canonical_stage)
-            
-            if len(matches) == 1:
-                sec, row = matches[0]
-                return BoardRoutingResult(
-                    **base_result,
-                    board_section=sec.name,
-                    board_row=row.display_label,
-                    routing_status="ROUTED",
-                    routing_reason="Unique match on Ready side"
-                )
-            elif len(matches) == 0:
+            dests = self._get_generic_hearing_destination(canonical_stage)
+            if not dests:
                 return BoardRoutingResult(
                     **base_result,
                     routing_status="UNRESOLVED_ROUTING",
-                    routing_reason="0 matching rows on Ready side"
+                    routing_reason="Generic 'Hearing' row not found in template"
                 )
-            else:
-                return BoardRoutingResult(
-                    **base_result,
-                    routing_status="UNRESOLVED_ROUTING",
-                    routing_reason=f"Multiple matches ({len(matches)}) on Ready side"
-                )
+                
+            return BoardRoutingResult(
+                **base_result,
+                destinations=dests,
+                routing_status="ROUTED",
+                routing_reason="Successfully routed to Hearing"
+            )
 
         # 4. Unready Routing
         if ready_status == "Unready":
@@ -130,35 +139,65 @@ class RoutingEngine:
                     routing_reason="Unknown case prefix for Unready routing"
                 )
                 
-            target_section_name = self.unready_prefix_to_section.get(prefix)
-            if not target_section_name:
+            is_warrant = canonical_stage in ["N.B.W._Unready", "B.W._Unready"]
+            target_sections = []
+            routing_desc = ""
+            
+            if prefix == "Cri.M.A.":
+                target_sections.append("M.A.")
+                if is_warrant:
+                    target_sections.append("N.B.W. / B.W.")
+                    routing_desc = "Unready Cri.M.A. N.B.W./B.W. case routed to M.A. and N.B.W./B.W."
+                else:
+                    routing_desc = "Unready Cri.M.A. case routed to M.A."
+            elif prefix == "PWDVA Appln.":
+                target_sections.append("D.V.")
+                if is_warrant:
+                    target_sections.append("N.B.W. / B.W.")
+                    routing_desc = "Unready PWDVA Appln. N.B.W./B.W. case routed to D.V. and N.B.W./B.W."
+                else:
+                    routing_desc = "Unready PWDVA Appln. case routed to D.V."
+            elif prefix in ["R.C.C.", "S.C.C."]:
+                target_sections.extend(["R.C.C.", "S.C.C."])
+                if is_warrant:
+                    target_sections.append("N.B.W. / B.W.")
+                    routing_desc = f"Unready {prefix} N.B.W./B.W. case routed to R.C.C., S.C.C., and N.B.W./B.W."
+                else:
+                    routing_desc = f"Unready {prefix} case routed to R.C.C. and S.C.C."
+            
+            # Look up each destination
+            final_dests = []
+            seen_dests = set()
+            
+            for sec_name in target_sections:
+                dests = self._find_row_in_section(sec_name, canonical_stage)
+                if not dests:
+                    return BoardRoutingResult(
+                        **base_result,
+                        routing_status="UNRESOLVED_ROUTING",
+                        routing_reason=f"Stage '{canonical_stage}' not found in required section '{sec_name}'"
+                    )
+                dest = dests[0]
+                dest.routing_reason = routing_desc
+                
+                ident = (dest.section_id, dest.row_id)
+                if ident not in seen_dests:
+                    seen_dests.add(ident)
+                    final_dests.append(dest)
+                    
+            if not final_dests:
                 return BoardRoutingResult(
                     **base_result,
                     routing_status="UNRESOLVED_ROUTING",
-                    routing_reason=f"Prefix '{prefix}' has no approved section mapping"
+                    routing_reason="No valid destinations found"
                 )
                 
-            matches = self._find_rows_in_section(target_section_name, canonical_stage)
-            if len(matches) == 1:
-                return BoardRoutingResult(
-                    **base_result,
-                    board_section=target_section_name,
-                    board_row=matches[0].display_label,
-                    routing_status="ROUTED",
-                    routing_reason="Unique match in unready section"
-                )
-            elif len(matches) == 0:
-                return BoardRoutingResult(
-                    **base_result,
-                    routing_status="UNRESOLVED_ROUTING",
-                    routing_reason=f"Stage '{canonical_stage}' not found in section '{target_section_name}'"
-                )
-            else:
-                return BoardRoutingResult(
-                    **base_result,
-                    routing_status="UNRESOLVED_ROUTING",
-                    routing_reason=f"Multiple matches in section '{target_section_name}'"
-                )
+            return BoardRoutingResult(
+                **base_result,
+                destinations=final_dests,
+                routing_status="ROUTED",
+                routing_reason="Successfully routed to Unready sections"
+            )
 
         # 5. Unknown/Empty Readiness
         return BoardRoutingResult(

@@ -1,6 +1,14 @@
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel
 from .models import CaseRecord
+
+class BoardDestination(BaseModel):
+    section_id: str
+    section_name: str
+    row_id: Optional[str] = None
+    row_name: Optional[str] = None
+    source_stage: str
+    routing_reason: str
 
 class BoardRoutingResult(BaseModel):
     source_case: CaseRecord
@@ -8,7 +16,6 @@ class BoardRoutingResult(BaseModel):
     canonical_stage: str
     readiness_status: Optional[str]
     case_prefix: str
-    board_section: Optional[str] = None
-    board_row: Optional[str] = None
+    destinations: List[BoardDestination] = []
     routing_status: str  # ROUTED, UNRESOLVED_ROUTING, INVALID_INPUT
     routing_reason: str

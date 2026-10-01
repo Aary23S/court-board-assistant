@@ -1,44 +1,66 @@
 {
   "rules": [
     {
-      "stage": "*",
-      "board_section": "M.A.",
+      "condition": "Ready",
+      "destinations": ["Hearing"],
       "status": "APPROVED",
-      "ready_behavior": "UNREADY",
       "source": "OFFICER_CONFIRMED",
-      "source_note": "RULE A: Unready + Cri.M.A. \u2192 M.A."
+      "source_note": "All Ready cases go to Hearing."
     },
     {
-      "stage": "*",
-      "board_section": "D.V.",
+      "condition": "Unready + Cri.M.A.",
+      "destinations": ["M.A."],
       "status": "APPROVED",
-      "ready_behavior": "UNREADY",
-      "source": "OFFICER_CONFIRMED",
-      "source_note": "RULE B: Unready + PWDVA Appln. \u2192 D.V."
+      "source": "OFFICER_CONFIRMED"
     },
     {
-      "stage": "*",
-      "board_section": "R.C.C.",
+      "condition": "Unready + PWDVA Appln.",
+      "destinations": ["D.V."],
       "status": "APPROVED",
-      "ready_behavior": "UNREADY",
-      "source": "OFFICER_CONFIRMED",
-      "source_note": "RULE C: Unready + R.C.C. \u2192 R.C.C."
+      "source": "OFFICER_CONFIRMED"
     },
     {
-      "stage": "*",
-      "board_section": "S.C.C.",
+      "condition": "Unready + R.C.C.",
+      "destinations": ["R.C.C.", "S.C.C."],
       "status": "APPROVED",
-      "ready_behavior": "UNREADY",
-      "source": "OFFICER_CONFIRMED",
-      "source_note": "RULE D: Unready + S.C.C. \u2192 S.C.C."
+      "source": "OFFICER_CONFIRMED"
     },
     {
-      "stage": "*",
-      "board_section": null,
+      "condition": "Unready + S.C.C.",
+      "destinations": ["R.C.C.", "S.C.C."],
       "status": "APPROVED",
-      "ready_behavior": "BOTH",
-      "source": "OFFICER_CONFIRMED",
-      "source_note": "RULE E: Ready / Unready determines board side."
+      "source": "OFFICER_CONFIRMED"
+    },
+    {
+      "condition": "Unready + Cri.M.A. + (N.B.W._Unready | B.W._Unready)",
+      "destinations": ["M.A.", "N.B.W. / B.W."],
+      "status": "APPROVED",
+      "source": "OFFICER_CONFIRMED"
+    },
+    {
+      "condition": "Unready + PWDVA Appln. + (N.B.W._Unready | B.W._Unready)",
+      "destinations": ["D.V.", "N.B.W. / B.W."],
+      "status": "APPROVED",
+      "source": "OFFICER_CONFIRMED"
+    },
+    {
+      "condition": "Unready + R.C.C. + (N.B.W._Unready | B.W._Unready)",
+      "destinations": ["R.C.C.", "S.C.C.", "N.B.W. / B.W."],
+      "status": "APPROVED",
+      "source": "OFFICER_CONFIRMED"
+    },
+    {
+      "condition": "Unready + S.C.C. + (N.B.W._Unready | B.W._Unready)",
+      "destinations": ["R.C.C.", "S.C.C.", "N.B.W. / B.W."],
+      "status": "APPROVED",
+      "source": "OFFICER_CONFIRMED"
+    },
+    {
+      "condition": "Stayed",
+      "destinations": [],
+      "status": "PENDING_OFFICER_DECISION",
+      "source": "PENDING",
+      "source_note": "Stayed cases remain unresolved."
     }
   ]
 }

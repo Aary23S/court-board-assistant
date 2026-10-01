@@ -15,10 +15,10 @@ def test_pending_decisions_format():
     
     nbw_decision = next((d for d in data["decisions"] if d["id"] == "N-BW-UNREADY-ROUTING"), None)
     assert nbw_decision is not None
-    assert nbw_decision["status"] == "PENDING_OFFICER_DECISION"
+    assert nbw_decision["status"] == "RESOLVED"
     assert "N.B.W._Unready" in nbw_decision["affected_stages"]
     
     ready_decision = next((d for d in data["decisions"] if d["id"] == "READY-UNREADY-STAGE"), None)
     assert ready_decision is not None
-    assert ready_decision["status"] == "PENDING_OFFICER_DECISION"
+    assert ready_decision["status"] == "RESOLVED"
     assert "Steps" in ready_decision["affected_stages"]

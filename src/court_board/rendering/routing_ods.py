@@ -15,12 +15,15 @@ class RoutingReportRenderer:
         unresolved = [r for r in self.results if r.routing_status == "UNRESOLVED_ROUTING"]
         invalid = [r for r in self.results if r.routing_status == "INVALID_INPUT"]
         
+        total_destinations = sum(len(r.destinations) for r in routed)
+        
         # 1. Summary Sheet
         summary_data = [
             ["Total Source Cases", len(self.results)],
-            ["Routed", len(routed)],
-            ["Unresolved", len(unresolved)],
-            ["Invalid", len(invalid)]
+            ["Routed Cases", len(routed)],
+            ["Unresolved Cases", len(unresolved)],
+            ["Invalid Cases", len(invalid)],
+            ["Total Board Destinations", total_destinations]
         ]
         df_summary = pd.DataFrame(summary_data, columns=["Metric", "Count"])
         
@@ -29,14 +32,13 @@ class RoutingReportRenderer:
         for r in routed:
             c = r.source_case
             routed_data.append({
-                "Section": r.board_section,
-                "Row Label": r.board_row,
                 "Case": c.cases,
                 "Party": c.party_name,
                 "Stage": r.canonical_stage,
-                "Ready/Unready": r.readiness_status
+                "Ready/Unready": r.readiness_status,
+                "Destinations Count": len(r.destinations)
             })
-        df_routed = pd.DataFrame(routed_data) if routed_data else pd.DataFrame(columns=["Section", "Row Label", "Case", "Party", "Stage", "Ready/Unready"])
+        df_routed = pd.DataFrame(routed_data) if routed_data else pd.DataFrame(columns=["Case", "Party", "Stage", "Ready/Unready", "Destinations Count"])
         
         # 3. Unresolved Cases
         unresolved_data = []
@@ -62,6 +64,24 @@ class RoutingReportRenderer:
             })
         df_invalid = pd.DataFrame(invalid_data) if invalid_data else pd.DataFrame(columns=["Case", "Stage", "Reason"])
         
+        # 5. Board Destinations
+        dest_data = []
+        for r in routed:
+            c = r.source_case
+            for d in r.destinations:
+                dest_data.append({
+                    "Case": c.cases,
+                    "Party": c.party_name,
+                    "Stage": r.canonical_stage,
+                    "Status": r.readiness_status,
+                    "Prefix": r.case_prefix,
+                    "Board Section": d.section_name,
+                    "Board Row": d.row_name,
+                    "Routing Reason": d.routing_reason,
+                    "Source Row": c.source_row_index
+                })
+        df_dests = pd.DataFrame(dest_data) if dest_data else pd.DataFrame(columns=["Case", "Party", "Stage", "Status", "Prefix", "Board Section", "Board Row", "Routing Reason", "Source Row"])
+        
         engine = 'odf' if path.suffix.lower() == '.ods' else 'openpyxl'
         
         try:
@@ -70,5 +90,6 @@ class RoutingReportRenderer:
                 df_routed.to_excel(writer, sheet_name="Routed Cases", index=False)
                 df_unresolved.to_excel(writer, sheet_name="Unresolved Cases", index=False)
                 df_invalid.to_excel(writer, sheet_name="Invalid Cases", index=False)
+                df_dests.to_excel(writer, sheet_name="Board Destinations", index=False)
         except Exception as e:
             raise RuntimeError(f"Failed to write routing report: {e}")
