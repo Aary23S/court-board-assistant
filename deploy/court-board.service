@@ -1,0 +1,15 @@
+[Unit]
+Description=Court Board Assistant Service
+After=network.target
+
+[Service]
+Type=simple
+User=court-officer
+WorkingDirectory=/opt/court-board-assistant
+ExecStart=/opt/court-board-assistant/.venv/bin/streamlit run src/court_board/ui/app.py --server.port=8501 --server.address=127.0.0.1
+Restart=on-failure
+RestartSec=5s
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
