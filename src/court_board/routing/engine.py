@@ -11,11 +11,20 @@ class RoutingEngine:
     def __init__(
         self, 
         template_path: str = "config/final_board_template.json",
-        stages_path: str = "config/stages.json"
+        stages_path: str = "config/stages.json",
+        mapping_path: str = "config/stage_board_mapping.json"
     ):
         self.template = self._load_template(template_path)
         self.canonical_stages = self._load_canonical_stages(stages_path)
+        self.stage_mappings = self._load_stage_mappings(mapping_path)
         self.prefix_extractor = CasePrefixExtractor()
+
+    def _load_stage_mappings(self, path: str) -> Dict[str, dict]:
+        p = Path(path)
+        if not p.exists():
+            return {}
+        with open(p, 'r', encoding='utf-8') as f:
+            return json.load(f)
         
     def _load_template(self, path: str) -> BoardTemplate:
         p = Path(path)
@@ -105,7 +114,23 @@ class RoutingEngine:
                 routing_reason=f"Unknown canonical stage: '{canonical_stage}'"
             )
 
-        # 2. Stayed Cases
+        # 2. Check Explicit Stage -> Board Section Mapping (Priority Rule)
+        if canonical_stage in self.stage_mappings:
+            mapping = self.stage_mappings[canonical_stage]
+            if mapping.get("status") == "CONFIRMED" and mapping.get("board_section"):
+                target_sec = mapping["board_section"]
+                dests = self._find_row_in_section(target_sec, canonical_stage)
+                if dests:
+                    for d in dests:
+                        d.routing_reason = f"Explicit stage mapping for '{canonical_stage}' -> '{target_sec}'"
+                    return BoardRoutingResult(
+                        **base_result,
+                        destinations=dests,
+                        routing_status="ROUTED",
+                        routing_reason=f"Successfully routed via explicit stage mapping to '{target_sec}'"
+                    )
+
+        # 3. Stayed Cases
         if ready_status == "Stayed":
             return BoardRoutingResult(
                 **base_result,

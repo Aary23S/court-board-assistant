@@ -36,3 +36,18 @@ The application strictly adheres to the following pipeline:
    ```bash
    pytest
    ```
+
+5. **Starting the GUI**
+   ```bash
+   # Windows
+   python -m venv .venv
+   .venv\Scripts\activate
+   python -m pip install -e .
+   streamlit run src/court_board/ui/app.py
+
+   # Linux/macOS
+   python3 -m venv .venv
+   source .venv/bin/activate
+   python3 -m pip install -e .
+   streamlit run src/court_board/ui/app.py
+   ```

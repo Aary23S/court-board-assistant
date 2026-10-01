@@ -1,0 +1,22 @@
+{
+  "Evidence Part Heard": {
+    "board_section": "Part Heard",
+    "status": "CONFIRMED"
+  },
+  "Hearing": {
+    "board_section": "Hearing",
+    "status": "CONFIRMED"
+  },
+  "Arguments": {
+    "board_section": "Argument",
+    "status": "CONFIRMED"
+  },
+  "Judgement": {
+    "board_section": "Judgement",
+    "status": "CONFIRMED"
+  },
+  "Statement U/sec.313 Cr.P.C.": {
+    "board_section": "313",
+    "status": "CONFIRMED"
+  }
+}

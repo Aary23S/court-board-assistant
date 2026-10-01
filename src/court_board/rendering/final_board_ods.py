@@ -3,7 +3,7 @@ from typing import List
 from pathlib import Path
 
 from odf.opendocument import OpenDocumentSpreadsheet
-from odf.table import Table, TableColumn, TableRow, TableCell
+from odf.table import Table, TableColumn, TableRow, TableCell, CoveredTableCell
 from odf.text import P
 from odf.style import Style, TextProperties, ParagraphProperties, TableColumnProperties
 
@@ -12,7 +12,7 @@ from ..domain.board_assembly import FinalBoard
 class FinalBoardODSRenderer:
     def __init__(self, board: FinalBoard):
         self.board = board
-        # Mapped from analyzing reference sample
+        # Mapped from analyzing reference sample (14 physical columns)
         self.col_widths = [
             "4.6cm", "3.4cm", "4.4cm", "4.3cm", "3.5cm", "0.5cm", "0.7cm", 
             "2.6cm", "2.5cm", "3.0cm", "1.6cm", "2.7cm", "2.5cm", "4.6cm"
@@ -46,7 +46,6 @@ class FinalBoardODSRenderer:
         self._create_styles(doc)
         
         date_str = self.board.date or "08.05.2026"  # Using sample's sheet date format if none provided
-        # Convert date format if needed, but let's just use what's provided or a default
         table = Table(name=date_str)
         
         for i in range(14):
@@ -57,6 +56,8 @@ class FinalBoardODSRenderer:
         tc1 = TableCell(numbercolumnsspanned=4, valuetype="string")
         tc1.addElement(P(text=f"Date : {date_str}"))
         tr1.addElement(tc1)
+        for _ in range(3):
+            tr1.addElement(CoveredTableCell())
         tc2 = TableCell(valuetype="string")
         tc2.addElement(P(text="Ready"))
         tr1.addElement(tc2)
@@ -98,7 +99,7 @@ class FinalBoardODSRenderer:
         # Row 5: Column Headers
         tr5 = TableRow()
         headers = [
-            ("Hearing", 1), ("Part Heard", 1), ("313.0", 1), ("Argument", 1), ("Judgement", 1),
+            ("Hearing", 1), ("Part Heard", 1), ("313", 1), ("Argument", 1), ("Judgement", 1),
             ("", 1), ("", 1), ("M.A.", 1), ("D.V.", 1), ("R.C.C.", 2), ("S.C.C.", 2), ("N.B.W. / B.W.", 1)
         ]
         for name, span in headers:
@@ -108,23 +109,31 @@ class FinalBoardODSRenderer:
             if name:
                 tc.addElement(P(text=name))
             tr5.addElement(tc)
+            for _ in range(span - 1):
+                tr5.addElement(CoveredTableCell())
         table.addElement(tr5)
         
-        # Case data layout
+        # Case data layout mapping to physical column indices
         col_map = {
-            "Hearing": 0, "Part Heard": 1, "313.0": 2, "Argument": 3, "Judgement": 4,
-            "M.A.": 7, "D.V.": 8, "R.C.C.": 9, "S.C.C.": 11, "N.B.W. / B.W.": 13
+            "Hearing": 0, 
+            "Part Heard": 1, 
+            "313": 2, 
+            "313.0": 2, 
+            "Argument": 3, 
+            "Judgement": 4,
+            "M.A.": 7, 
+            "D.V.": 8, 
+            "R.C.C.": 9, 
+            "S.C.C.": 11, 
+            "N.B.W. / B.W.": 13,
+            "N.B.W./B.W.": 13
         }
         span_map = {9: 2, 11: 2}
         
         case_lists = {idx: [] for idx in col_map.values()}
         
         for sec in self.board.sections:
-            # For 313.0, we check standard name.
-            name = sec.section_name
-            if name == "313":
-                name = "313.0"
-                
+            name = sec.section_name.strip()
             if name in col_map:
                 idx = col_map[name]
                 for e in sec.entries:
@@ -145,6 +154,8 @@ class FinalBoardODSRenderer:
                     if text:
                         tc.addElement(P(text=text))
                     tr.addElement(tc)
+                    for _ in range(span - 1):
+                        tr.addElement(CoveredTableCell())
                     c_idx += span
                 else:
                     tr.addElement(TableCell())
