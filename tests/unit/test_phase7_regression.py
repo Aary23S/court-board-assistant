@@ -173,3 +173,29 @@ def test_12_source_file_remains_unchanged(real_sample_path):
         hash_after = hashlib.sha256(f.read()).hexdigest()
         
     assert hash_before == hash_after
+
+def test_13_manual_stage_override():
+    from court_board.ui.state import AppState
+    state = AppState()
+    state.process_file("samples/01.07.2026.xlsx")
+    
+    target_case = next(c for c in state.cases if c.cases == "S.C.C./301071/2012")
+    orig_row = target_case.source_row_index
+    
+    # Originally Evidence Part Heard -> Part Heard
+    orig_route = next(r for r in state.routing_results if r.source_row_index == orig_row)
+    assert orig_route.canonical_stage == "Evidence Part Heard"
+    assert orig_route.destinations[0].section_name == "Part Heard"
+    
+    # Override to Arguments -> Argument section
+    state.override_case_stage(orig_row, "Arguments")
+    
+    new_route = next(r for r in state.routing_results if r.source_row_index == orig_row)
+    assert new_route.canonical_stage == "Arguments"
+    assert new_route.destinations[0].section_name == "Argument"
+    
+    # Reset override
+    state.reset_case_stage_override(orig_row)
+    reset_route = next(r for r in state.routing_results if r.source_row_index == orig_row)
+    assert reset_route.canonical_stage == "Evidence Part Heard"
+    assert reset_route.destinations[0].section_name == "Part Heard"

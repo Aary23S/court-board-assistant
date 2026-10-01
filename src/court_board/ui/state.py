@@ -29,6 +29,7 @@ class AppState:
         
         self.assembled_board = None
         self.validation_report = None
+        self.manual_stage_overrides = {}  # source_row_index -> new_canonical_stage
         self.is_processed: bool = False
 
     def process_file(self, file_path: str, filename: str = ""):
@@ -38,24 +39,47 @@ class AppState:
         # 1. Import
         importer = CourtBoardImporter(file_path)
         self.cases, self.import_validations = importer.load()
+        self.manual_stage_overrides = {}
         
-        # 2. Classification
+        self.reprocess_pipeline()
+        self.is_processed = True
+
+    def override_case_stage(self, source_row_index: int, new_canonical_stage: str):
+        self.manual_stage_overrides[source_row_index] = new_canonical_stage
+        self.reprocess_pipeline()
+
+    def reset_case_stage_override(self, source_row_index: int):
+        if source_row_index in self.manual_stage_overrides:
+            del self.manual_stage_overrides[source_row_index]
+            self.reprocess_pipeline()
+
+    def reprocess_pipeline(self):
+        if not self.cases:
+            return
+
+        # 1. Classification
         self.stage_collection = StageCollection(self.classification_engine.get_stages())
         self.classification_results = []
         for case in self.cases:
             class_res = self.classification_engine.classify(case)
+            if case.source_row_index in self.manual_stage_overrides:
+                override_stage = self.manual_stage_overrides[case.source_row_index]
+                class_res.canonical_stage = override_stage
+                class_res.classification_status = "OVERRIDDEN"
             self.classification_results.append(class_res)
             self.stage_collection.add_result(class_res)
             
-        # 3. Routing
+        # 2. Routing
         self.routing_results = []
-        for case in self.cases:
-            class_res = self.classification_engine.classify(case)
+        for class_res in self.classification_results:
+            case = class_res.source_case
             canonical = class_res.canonical_stage
             route_res = self.routing_engine.route(case, canonical)
+            if case.source_row_index in self.manual_stage_overrides:
+                route_res.routing_reason = f"[OVERRIDDEN: {canonical}] {route_res.routing_reason}"
             self.routing_results.append(route_res)
             
-        # 4. Assembly & Validation
+        # 3. Assembly & Validation
         assembler = FinalBoardAssembler(self.routing_engine.template)
         board_date = "01.07.2026"
         if self.cases and self.cases[0].next_date:
@@ -84,7 +108,6 @@ class AppState:
         rep.error_message = err_msg
 
         self.validation_report = rep
-        self.is_processed = True
 
     @property
     def total_cases(self) -> int:

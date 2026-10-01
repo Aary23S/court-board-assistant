@@ -14,10 +14,12 @@ st.set_page_config(
 )
 
 # Initialize Session State
-if "app_state" not in st.session_state:
+if "app_state" not in st.session_state or not hasattr(st.session_state["app_state"], "manual_stage_overrides"):
     st.session_state["app_state"] = AppState()
 
 app_state = st.session_state["app_state"]
+if not hasattr(app_state, "manual_stage_overrides"):
+    app_state.manual_stage_overrides = {}
 
 st.title("⚖️ COURT BOARD ASSISTANT")
 st.caption("Daily Court Board & Stagewise Review System — Phase 7 GUI")
