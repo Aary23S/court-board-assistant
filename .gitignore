@@ -34,6 +34,6 @@ htmlcov/
 dist/
 build/
 *.egg-info/
-samples/01.07.2026.xlsx
-samples/all stagewise.xlsx
-samples/June 2026.xlsx
+docs/
+samples/
+docs/

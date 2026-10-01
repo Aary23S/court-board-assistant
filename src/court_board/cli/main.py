@@ -10,6 +10,19 @@ from ..rendering.stagewise_ods import StageWiseRenderer
 from ..validation.business_rule_validator import BusinessRuleValidator
 from ..routing.engine import RoutingEngine
 from ..rendering.routing_ods import RoutingReportRenderer
+from ..assembly.assembler import FinalBoardAssembler
+from ..assembly.validator import FinalBoardValidator
+from ..rendering.assembly_ods import AssemblyReportRenderer
+from ..rendering.final_board_ods import FinalBoardODSRenderer
+import pandas as pd
+import hashlib
+
+def get_file_hash(filepath: str) -> str:
+    h = hashlib.sha256()
+    with open(filepath, 'rb') as f:
+        while chunk := f.read(8192):
+            h.update(chunk)
+    return h.hexdigest()
 
 def main():
     parser = argparse.ArgumentParser(description="Court Board Assistant CLI")
@@ -126,6 +139,7 @@ def main():
         print("Rules verified.")
 
     elif args.command == "route":
+        original_hash = get_file_hash(args.file)
         # 1. Import source
         importer = CourtBoardImporter(args.file)
         records, validations = importer.load()
@@ -189,7 +203,77 @@ def main():
             if total_dests > 20:
                 print(f"... and {total_dests - 20} more destinations.")
                 
-        print(f"\nReport written to: {output_path}")
+        # Assembly
+        assembler = FinalBoardAssembler(routing_engine.template)
+        final_board = assembler.assemble(routing_results, date_str)
+        
+        validator = FinalBoardValidator(routing_engine.template)
+        validator.validate(final_board, routing_results)
+        
+        assembly_output_path = f"output/{date_str}_final_board_assembly_report.ods"
+        assembly_renderer = AssemblyReportRenderer(final_board, routing_results)
+        assembly_renderer.render(assembly_output_path)
+        
+        # Final Board Rendering
+        final_ods_path = f"output/{date_str}_final_board.ods"
+        board_renderer = FinalBoardODSRenderer(final_board)
+        board_renderer.render(final_ods_path)
+        print(f"Final Board written to: {final_ods_path}")
+        
+        # Source Integrity
+        current_hash = get_file_hash(args.file)
+        source_intact = (current_hash == original_hash)
+        
+        # Round trip validation
+        df = pd.read_excel(final_ods_path, engine='odf', header=None)
+        headers = df.iloc[4].fillna("").tolist()
+        
+        col_map = {
+            "Hearing": 0, "Part Heard": 1, "313.0": 2, "Argument": 3, "Judgement": 4,
+            "M.A.": 7, "D.V.": 8, "R.C.C.": 9, "S.C.C.": 11, "N.B.W. / B.W.": 13
+        }
+        
+        round_trip_results = []
+        all_passed = True
+        
+        # Convert df columns to lists
+        extracted_cases = {}
+        for sec_name, col_idx in col_map.items():
+            if col_idx < len(df.columns):
+                extracted_cases[sec_name] = df.iloc[5:, col_idx].dropna().astype(str).tolist()
+            else:
+                extracted_cases[sec_name] = []
+                
+        for sec in final_board.sections:
+            name = sec.section_name
+            if name == "313":
+                name = "313.0"
+            if name in extracted_cases:
+                expected = [e.case_number for e in sec.entries]
+                actual = extracted_cases[name]
+                for exp in expected:
+                    if exp not in actual:
+                        round_trip_results.append({"Section": name, "Case": exp, "Status": "MISSING"})
+                        all_passed = False
+                    else:
+                        round_trip_results.append({"Section": name, "Case": exp, "Status": "FOUND"})
+                        
+        val_status = "PASSED" if all_passed and source_intact else "FAILED"
+        
+        # Render Report
+        render_report_path = f"output/{date_str}_final_board_render_report.ods"
+        summary_df = pd.DataFrame([
+            {"Metric": "Final Board Entries Expected", "Value": sum(len(s.entries) for s in final_board.sections)},
+            {"Metric": "Round Trip Passed", "Value": str(all_passed)},
+            {"Metric": "Source Intact", "Value": str(source_intact)}
+        ])
+        rt_df = pd.DataFrame(round_trip_results)
+        
+        with pd.ExcelWriter(render_report_path, engine='odf') as writer:
+            summary_df.to_excel(writer, sheet_name="Summary", index=False)
+            rt_df.to_excel(writer, sheet_name="Round Trip Validation", index=False)
+            
+        print(f"Render Report written to: {render_report_path}")
 
 if __name__ == "__main__":
     main()
