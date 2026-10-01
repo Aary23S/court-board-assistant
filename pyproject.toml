@@ -29,8 +29,9 @@ pythonpath = ["src"]
 [tool.poetry]
 name = "court-board-assistant"
 version = "0.1.0"
-description = ""
+description = "Local court-workflow automation system"
 authors = ["Aary Satardekar"]
+packages = [{include = "court_board", from = "src"}]
 
-package-mode = false
-
+[tool.setuptools.packages.find]
+where = ["src"]
