@@ -25,3 +25,12 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+
+[tool.poetry]
+name = "court-board-assistant"
+version = "0.1.0"
+description = ""
+authors = ["Aary Satardekar"]
+
+package-mode = false
+
