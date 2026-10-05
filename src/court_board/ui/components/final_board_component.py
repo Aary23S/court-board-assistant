@@ -53,11 +53,15 @@ def render_final_board_page(app_state: AppState):
     col_lists[10] = ["(Span J-K)"]
     col_lists[12] = ["(Span L-M)"]
 
+    unready_sections = {"M.A.", "D.V.", "R.C.C.", "S.C.C.", "N.B.W. / B.W.", "N.B.W./B.W."}
     for sec in sections:
         name = sec.section_name.strip()
         if name in col_map:
             idx = col_map[name]
-            col_lists[idx] = [e.case_number for e in sec.entries]
+            if name in unready_sections:
+                col_lists[idx] = [e.case_number.split("/", 1)[-1] if "/" in e.case_number else e.case_number for e in sec.entries]
+            else:
+                col_lists[idx] = [e.case_number for e in sec.entries]
 
     max_rows = max([len(l) for l in col_lists.values()] + [0])
 

@@ -132,12 +132,16 @@ class FinalBoardODSRenderer:
         
         case_lists = {idx: [] for idx in col_map.values()}
         
+        unready_sections = {"M.A.", "D.V.", "R.C.C.", "S.C.C.", "N.B.W. / B.W.", "N.B.W./B.W."}
         for sec in self.board.sections:
             name = sec.section_name.strip()
             if name in col_map:
                 idx = col_map[name]
                 for e in sec.entries:
-                    case_lists[idx].append(e.case_number)
+                    case_no = e.case_number
+                    if name in unready_sections and "/" in case_no:
+                        case_no = case_no.split("/", 1)[-1]
+                    case_lists[idx].append(case_no)
                     
         max_rows = max([len(l) for l in case_lists.values()] + [0])
         
