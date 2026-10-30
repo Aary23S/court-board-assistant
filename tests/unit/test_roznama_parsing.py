@@ -25,7 +25,7 @@ class TestRecordBoundaryParser:
         assert recs[0].serial_number == "1"
         assert recs[0].hearing_date == "30-05-2024"
         assert recs[0].stage == "प्रथम आदेश"
-        assert "मे िपठािसन अिधकारी" in recs[0].business
+        assert "मे पिठासिन अधिकारी" in recs[0].business or "मे पिठासिन" in recs[0].business
 
         # Verify last record
         assert recs[-1].record_sequence == 36

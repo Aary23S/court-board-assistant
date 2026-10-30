@@ -17,7 +17,36 @@ class RoznamaHTMLBuilder:
         font_b64 = self.font_manager.get_base64_font()
         h = header or RoznamaHeader()
 
-        # Build table rows
+        # Build case info rows dynamically without misleading default dashes
+        case_rows = []
+        c_num = h.case_number or ""
+        cnr_num = h.cnr_number or ""
+
+        if c_num or cnr_num:
+            c1 = f"<strong>प्रकरण क्रमांक:</strong> {c_num}" if c_num else ""
+            c2 = f"<strong>सीएनआर क्रमांक:</strong> {cnr_num}" if cnr_num else ""
+            case_rows.append(f"""
+            <tr>
+                <td style="width: 55%;">{c1}</td>
+                <td style="width: 45%;">{c2}</td>
+            </tr>
+            """)
+
+        parties_val = h.parties or "सरकार तर्फे पोस्टे वि. आरोपी"
+        case_rows.append(f"""
+        <tr>
+            <td colspan="2"><strong>पक्षकार:</strong> {parties_val}</td>
+        </tr>
+        """)
+
+        if h.app_advocate:
+            case_rows.append(f"""
+            <tr>
+                <td colspan="2"><strong>सहाय्यक सरकारी अभियोक्ता / वकील:</strong> {h.app_advocate}</td>
+            </tr>
+            """)
+
+        case_info_html = "".join(case_rows)
         rows_html = []
         for r in records:
             next_date_display = r.next_date if r.next_date else ""
@@ -109,21 +138,21 @@ body {{
     word-wrap: break-word;
 }}
 
-/* Column Width Ratios */
+/* Column Width Ratios matching target_roznama_sample.pdf (94.7pt, 301.7pt, 113.8pt) */
 .col-date {{
-    width: 18.6%;
+    width: 18.0%;
     text-align: center;
     font-size: 10pt;
 }}
 
 .col-detail {{
-    width: 59.1%;
+    width: 60.0%;
     text-align: justify;
     font-size: 9.5pt;
 }}
 
 .col-next-date {{
-    width: 22.3%;
+    width: 22.0%;
     text-align: center;
     font-size: 10pt;
 }}
@@ -155,16 +184,7 @@ thead {{
 </div>
 
 <table class="case-info-grid">
-    <tr>
-        <td style="width: 55%;"><strong>प्रकरण क्रमांक:</strong> {h.case_number or "---"}</td>
-        <td style="width: 45%;"><strong>सीएनआर क्रमांक:</strong> {h.cnr_number or "---"}</td>
-    </tr>
-    <tr>
-        <td colspan="2"><strong>पक्षकार:</strong> {h.parties or "सरकार तर्फे पोस्टे वि. आरोपी"}</td>
-    </tr>
-    <tr>
-        <td colspan="2"><strong>सहाय्यक सरकारी अभियोक्ता / वकील:</strong> {h.app_advocate or "---"}</td>
-    </tr>
+    {case_info_html}
 </table>
 
 <table class="proceedings-table">

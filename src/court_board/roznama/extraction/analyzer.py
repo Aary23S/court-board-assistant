@@ -5,6 +5,7 @@ and evaluates extraction confidence.
 """
 from pathlib import Path
 from typing import List, Dict, Any, Optional
+import re
 
 from .native_extractor import NativePDFExtractor
 from .pua_normalizer import MarathiPUANormalizer
@@ -50,6 +51,22 @@ class PDFPageAnalyzer:
                 page_warnings = []
                 if unmapped_count > 0:
                     page_warnings.append(f"{unmapped_count} unmapped PUA character(s) detected: {set(unmapped)}")
+
+                # Detect suspicious/malformed sequences in raw text:
+                # 1. Pre-base velanti count
+                pre_base_velanti_count = len(re.findall(r'(?<![\u0915-\u0939\u094d])\u093f[\u0915-\u0939]', raw_text))
+                if pre_base_velanti_count > 0:
+                    page_warnings.append(f"Detected {pre_base_velanti_count} legacy pre-base velanti (U+093F) character(s); normalized to canonical Unicode.")
+
+                # 2. Decomposed split vowels count
+                split_vowel_count = len(re.findall(r'[\u0915-\u0939]\u093e\u0947', raw_text)) + len(re.findall(r'[\u0915-\u0939]\u093e\u0948', raw_text))
+                if split_vowel_count > 0:
+                    page_warnings.append(f"Detected {split_vowel_count} decomposed split vowel sequence(s) (U+093E+U+0947); composed to canonical Devanagari.")
+
+                # 3. Replacement characters (U+FFFD)
+                replacement_count = raw_text.count('\ufffd')
+                if replacement_count > 0:
+                    page_warnings.append(f"Detected {replacement_count} Unicode replacement character(s) (U+FFFD).")
 
                 # Determine whether page is native text or scanned
                 if raw_len > 100:

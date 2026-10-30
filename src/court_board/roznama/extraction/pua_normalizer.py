@@ -16,7 +16,7 @@ MARATHI_PUA_GLYPH_MAP: Dict[str, str] = {
     '\ue222': 'व्',      # .ही.पालीवाल -> .व्ही.पालीवाल
     '\ue29f': 'क्र',     # मांक -> क्रमांक
     '\ue2a2': 'प्र',     # करण -> प्रकरण
-    '\ue2a4': 'श्री',    # ी -> श्री
+    '\ue2a4': 'श्री',    # ी -> श्री (when standalone)
     '\ue76f': 'र्फे',     # अजदारातफ -> अर्जदारातर्फे
     '\ue771': 'ेंट',     # इंसटुमट -> इंस्ट्रुमेंट
     '\ue777': '्रा',     # गाम -> ग्राम
@@ -61,21 +61,49 @@ class MarathiPUANormalizer:
     def normalize(self, text: str) -> Tuple[str, List[str]]:
         """
         Replaces known PUA characters with canonical Devanagari Unicode.
-        Applies Devanagari phonological reordering for superscript reph (\ue77a, \ue76f).
+        Applies Devanagari phonological reordering for superscript reph (\ue77a, \ue76f)
+        and pre-base velanti (\u093f), and composes split vowels (\u093e\u0947).
+        Strictly preserves raw source representation and is idempotent.
         """
         if not text:
             return "", []
 
-        # 1. Phonological reordering for Reph (\ue77a)
-        # In custom fonts, \ue77a is placed AFTER the consonant cluster,
+        # 1. Reph & Suffix PUA reordering
+        # In source custom fonts, \ue2a4 is 'श्र'. When followed by 'ी', \ue2a4 + 'ी' -> 'श्री'.
+        # If \ue2a4 stands alone without 'ी', it represents 'श्री'.
+        text = text.replace('\ue2a4ी', 'श्री')
+
+        # \ue1e2 is a bold header reph marker placed after 'ज' in 'अज\ue1e2' -> 'अर्ज'
+        text = text.replace('ज\ue1e2', 'र्ज')
+
+        # Phonological reordering for Reph (\ue77a)
+        # In custom fonts, \ue77a is placed AFTER the consonant cluster/syllable,
         # but in standard Devanagari Unicode, reph (ra + virama) precedes the consonant cluster.
-        # e.g., 'ज' + \ue77a -> 'र्ज'
+        # e.g., 'ज' + \ue77a -> 'र्ज', 'टा' + \ue77a -> 'र्टा', 'या' + \ue77a -> 'र्या'
         reph_pattern = r'([\u0915-\u0939][\u093e-\u094c]?)\ue77a'
         text = re.sub(reph_pattern, r'र्\1', text)
 
-        # 2. Reordering for 'तफ\ue76f' -> 'तर्फे'
+        # Reordering for 'तफ\ue76f' -> 'तर्फे'
         text = text.replace('तफ\ue76f', 'तर्फे')
 
+        # 2. Clean combining virama + dotted circle artifacts (e.g. \u094d\u25cc?\u0940 -> \u0940)
+        # In legacy fonts, an invalid sequence of virama + vowel sign produced dotted circle U+25CC.
+        text = re.sub(r'\u094d\u25cc?([\u093e-\u094c])', r'\1', text)
+        text = text.replace('\u25cc', '')
+
+        # 3. Pre-base Velanti (ह्रस्व वेलांटी / \u093F) phonological reordering
+        # Performed BEFORE replacing Devanagari PUA consonants (e.g. \ue955 = 'प्र')
+        # so that clusters like \ue955 + \u093f + त are correctly recognized as
+        # pre-base velanti before 'त' and converted to \ue955 + 'ति' -> 'प्रति'.
+        # Lookbehind (?<![\u0915-\u0939\u094d]) ensures already-correct post-consonant
+        # matras are untouched, making normalization completely idempotent.
+        # Lookahead (?![\u093e-\u094c]) ensures we attach only to syllables not already bearing a vowel.
+        velanti_pat = re.compile(
+            r'(?<![\u0915-\u0939\u094d])\u093f((?:[\u0915-\u0939\ue000-\uf8ff]\u093c?\u094d)*[\u0915-\u0939\ue000-\uf8ff]\u093c?)(?![\u093e-\u094c])'
+        )
+        text = velanti_pat.sub(lambda m: m.group(1) + '\u093f', text)
+
+        # 4. Map PUA glyphs to canonical Unicode
         unmapped = []
         chars = []
 
@@ -91,10 +119,28 @@ class MarathiPUANormalizer:
                 chars.append(c)
 
         normalized = "".join(chars)
-        
-        # 3. Clean up pre-base matra anomalies common to legacy custom-font exports
+
+        # 5. Split vowel composition
+        # Legacy Devanagari text exports represent 'ो' (o-matra) as 'ा' + 'े' (\u093e\u0947)
+        # and 'ौ' (au-matra) as 'ा' + 'ै' (\u093e\u0948).
+        # We compose these onto preceding consonants:
+        # e.g. काेिवड -> कोिवड -> कोविड, आराेपी -> आरोपी, समाेर -> समोर
+        split_o_pat = re.compile(r'([\u0915-\u0939]\u093c?)\u093e\u0947')
+        normalized = split_o_pat.sub(lambda m: m.group(1) + '\u094b', normalized)
+
+        split_au_pat = re.compile(r'([\u0915-\u0939]\u093c?)\u093e\u0948')
+        normalized = split_au_pat.sub(lambda m: m.group(1) + '\u094c', normalized)
+
+        # 6. Clean up remaining legacy pre-base matra anomalies and double vowels
         normalized = normalized.replace("संिप्रकरण", "संक्षिप्त प्रकरण")
         normalized = normalized.replace("संिप्त", "संक्षिप्त")
+        normalized = normalized.replace("श्रीी", "श्री")
+
+        # 7. Word-boundary restoration for Devanagari prefix compounds broken by font-switch/pre-base matra spaces
+        # In legacy court PDF exports, prefixes like 'प्रति' followed by verbal stems like 'नियुक्त'
+        # often had an extraneous space inserted due to DTP font boundary or pre-base velanti positioning
+        # (e.g. 'प्रति नियुक्तीवर' -> 'प्रतिनियुक्तीवर').
+        normalized = re.sub(r'\bप्रति\s+नियुक्त', 'प्रतिनियुक्त', normalized)
 
         return normalized, unmapped
 
