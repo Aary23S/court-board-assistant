@@ -57,6 +57,8 @@ class RoznamaState:
         self.is_extracted: bool = False
         self.validation_errors: List[str] = []
         self.validation_warnings: List[str] = []
+        # Phase 7 Marathi Text Fidelity Flagged Records: sequence -> list of defect descriptions
+        self.flagged_fidelity_records: Dict[int, List[str]] = {}
 
         # Phase 5B Generated Artifact Lifecycle Management
         self.generated_pdf_bytes: Optional[bytes] = None
@@ -340,12 +342,63 @@ class RoznamaState:
         except ValueError:
             return False
 
+    @staticmethod
+    def inspect_marathi_text_fidelity(text: str) -> List[str]:
+        """
+        Inspects Devanagari Marathi text for suspicious Unicode codepoints and malformations:
+          - Orphaned / leading pre-base short-i matra (U+093F)
+          - Dotted circle (U+25CC)
+          - Unmapped PUA characters (U+E000 - U+F8FF)
+          - Replacement character (U+FFFD)
+          - Split vowels (e.g. \u093E\u0947 or \u093E\u0948)
+          - Invalid virama followed directly by a vowel matra (\u094D[\u093E-\u094C])
+          - Accidental double vowel matras (e.g. \u093E\u093E, \u0940\u0940)
+        Returns a list of human-readable defect descriptions.
+        """
+        if not text:
+            return []
+
+        defects = []
+
+        # 1. Orphaned or leading pre-base short-i matra (U+093F) not preceded by consonant/virama
+        if re.search(r"(?:^|[\s\(\[\{\"'`।॥])\u093F", text):
+            defects.append("ह्रस्व वेलांटी विसंगती (Orphaned / leading pre-base short-i matra U+093F)")
+
+        # 2. Dotted circle artifact (U+25CC)
+        if "\u25CC" in text:
+            defects.append("अवैध जोडाक्षर चिन्ह (Dotted circle artifact U+25CC)")
+
+        # 3. Unmapped Private Use Area (PUA) codepoints
+        pua_matches = [c for c in text if 0xE000 <= ord(c) <= 0xF8FF]
+        if pua_matches:
+            hex_codes = ", ".join(f"U+{ord(c):04X}" for c in sorted(set(pua_matches)))
+            defects.append(f"रूपांतरित न झालेली अक्षरे (Unmapped PUA codes: {hex_codes})")
+
+        # 4. Replacement character (U+FFFD)
+        if "\uFFFD" in text:
+            defects.append("अज्ञात वर्ण (Unicode replacement character U+FFFD)")
+
+        # 5. Split vowels (e.g. \u093E\u0947 or \u093E\u0948)
+        if re.search(r"[\u0915-\u0939]\u093C?\u093E[\u0947\u0948]", text):
+            defects.append("असमाविष्ट स्वर (Split vowel sequence e.g. \u093E\u0947 / \u093E\u0948)")
+
+        # 6. Virama followed by vowel matra (\u094D[\u093E-\u094C])
+        if re.search(r"\u094D[\u093E-\u094C]", text):
+            defects.append("हलंत विसंगती (Invalid virama followed directly by vowel matra)")
+
+        # 7. Accidental double vowel matras (\u093E\u093E, \u0940\u0940)
+        if re.search(r"([\u093E-\u094C])\1", text):
+            defects.append("दुहेरी मात्रा विसंगती (Accidental double vowel matra)")
+
+        return defects
+
     def validate(self) -> bool:
         """
         Runs comprehensive validation checks on all records before PDF generation.
         """
         self.validation_errors = []
         self.validation_warnings = []
+        self.flagged_fidelity_records = {}
 
         if not self.transformed_records:
             self.validation_errors.append("No records extracted from document.")
@@ -393,6 +446,17 @@ class RoznamaState:
                     if warn_key not in self.acknowledged_warnings:
                         self.validation_warnings.append(
                             f"Record #{r.record_sequence}: {missing_name} is empty. (Requires acknowledgement)"
+                        )
+
+                # 4b. Phase 7 Marathi Text Fidelity Validation Gate
+                fidelity_defects = self.inspect_marathi_text_fidelity(r.proceedings_detail)
+                if fidelity_defects:
+                    self.flagged_fidelity_records[r.record_sequence] = fidelity_defects
+                    warn_key = f"fidelity_defect_rec_{r.record_sequence}"
+                    if warn_key not in self.acknowledged_warnings:
+                        defects_summary = "; ".join(fidelity_defects)
+                        self.validation_warnings.append(
+                            f"Record #{r.record_sequence}: संशयास्पद मराठी मजकूर ({defects_summary}). (Requires review/acknowledgement)"
                         )
 
         # 5. Review progress warnings

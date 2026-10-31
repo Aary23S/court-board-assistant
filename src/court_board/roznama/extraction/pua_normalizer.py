@@ -19,10 +19,10 @@ MARATHI_PUA_GLYPH_MAP: Dict[str, str] = {
     '\ue2a4': 'श्री',    # ी -> श्री (when standalone)
     '\ue76f': 'र्फे',     # अजदारातफ -> अर्जदारातर्फे
     '\ue771': 'ेंट',     # इंसटुमट -> इंस्ट्रुमेंट
-    '\ue777': '्रा',     # गाम -> ग्राम
+    '\ue777': '्र',      # गाम -> ग्राम (consonant conjunct base ra; source has explicit aa matra \ue777 + \u093E)
     '\ue77a': 'र्',      # Reph marker (handles both standalone & positional)
     '\ue8bd': 'क्ष',     # पकार -> पक्षकार
-    '\ue8be': 'ज्ञा',    # िताप -> प्रतिज्ञापत्र
+    '\ue8be': 'ज्ञ',     # िताप -> प्रतिज्ञापत्र (source has explicit aa matra \ue8be + \u093E)
     '\ue8c0': 'क्',      # युतीवाद -> युक्तीवाद (क् + ती)
     '\ue8c4': 'च्या',    # अजदाराया -> अर्जदाराच्या
     '\ue8c8': 'ण्या',    # वगळयात -> वगळण्यात
@@ -39,7 +39,7 @@ MARATHI_PUA_GLYPH_MAP: Dict[str, str] = {
     '\ue8d8': 'स्',      # टेशन -> स्टेशन
     '\ue900': 'त्त',     # दत्ता
     '\ue904': 'द्द',     # रद्द
-    '\ue90b': 'द्वा',    # द्वारे
+    '\ue90b': 'द्व',     # द्वारे (source has explicit aa matra \ue90b + \u093E)
     '\ue952': 'क्र.',    # .२ -> क्र.२
     '\ue954': 'त्र',     # वकीलप -> वकीलपत्र
     '\ue955': 'प्र',     # करण -> प्रकरण
@@ -91,6 +91,13 @@ class MarathiPUANormalizer:
         text = re.sub(r'\u094d\u25cc?([\u093e-\u094c])', r'\1', text)
         text = text.replace('\u25cc', '')
 
+        # 2b. Map half-consonants ending with virama (e.g. \ue8c0='क्', \ue8cc='न्', \ue8cf='ब्', \ue8d8='स्')
+        # BEFORE pre-base velanti reordering, so that multi-consonant clusters (like क् + त)
+        # are correctly recognized as a single cluster ahead of the matra (yielding 'क्ति' rather than 'क्ित').
+        for k, v in self.mapping.items():
+            if v.endswith('\u094d'):
+                text = text.replace(k, v)
+
         # 3. Pre-base Velanti (ह्रस्व वेलांटी / \u093F) phonological reordering
         # Performed BEFORE replacing Devanagari PUA consonants (e.g. \ue955 = 'प्र')
         # so that clusters like \ue955 + \u093f + त are correctly recognized as
@@ -131,10 +138,15 @@ class MarathiPUANormalizer:
         split_au_pat = re.compile(r'([\u0915-\u0939]\u093c?)\u093e\u0948')
         normalized = split_au_pat.sub(lambda m: m.group(1) + '\u094c', normalized)
 
-        # 6. Clean up remaining legacy pre-base matra anomalies and double vowels
+        # 6. Clean up remaining legacy typographical anomalies and double vowels
         normalized = normalized.replace("संिप्रकरण", "संक्षिप्त प्रकरण")
         normalized = normalized.replace("संिप्त", "संक्षिप्त")
         normalized = normalized.replace("श्रीी", "श्री")
+        normalized = normalized.replace("सााे.", "सा.")
+
+        # Deduplicate accidental double vowel signs resulting from ligature glyph + matra
+        # (e.g. \u093E\u093E -> \u093E, \u0940\u0940 -> \u0940)
+        normalized = re.sub(r'([\u093e-\u094c])\1+', r'\1', normalized)
 
         # 7. Word-boundary restoration for Devanagari prefix compounds broken by font-switch/pre-base matra spaces
         # In legacy court PDF exports, prefixes like 'प्रति' followed by verbal stems like 'नियुक्त'

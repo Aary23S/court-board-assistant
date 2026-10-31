@@ -112,7 +112,10 @@ def render_roznama_page(roznama_state: RoznamaState):
     selected_seq = st.selectbox(
         "Select Record to Inspect / Edit (नोंद निवडा):",
         options=[r.record_sequence for r in roznama_state.transformed_records],
-        format_func=lambda s: f"Record #{s} — {next(r.today_date for r in roznama_state.transformed_records if r.record_sequence == s)} ({'✅ Reviewed' if s in roznama_state.reviewed_sequences else '⏳ Pending'})"
+        format_func=lambda s: (
+            f"Record #{s} — {next(r.today_date for r in roznama_state.transformed_records if r.record_sequence == s)} "
+            f"({'⚠️ मजकूर तपासणी' if s in roznama_state.flagged_fidelity_records else ('✅ Reviewed' if s in roznama_state.reviewed_sequences else '⏳ Pending')})"
+        )
     )
 
     if selected_seq:
@@ -125,6 +128,13 @@ def render_roznama_page(roznama_state: RoznamaState):
         current_d = edits.get("date", rec.today_date)
         current_next_d = rec.next_date or ""
         original_derived_next = roznama_state.original_derived_next_dates.get(selected_seq) or "---"
+
+        # Display fidelity warning if flagged
+        if selected_seq in roznama_state.flagged_fidelity_records:
+            st.warning(
+                f"⚠️ **मराठी मजकूर तपासणी सूचना (Fidelity Notice for Record #{selected_seq}):** "
+                + "; ".join(roznama_state.flagged_fidelity_records[selected_seq])
+            )
 
         with st.container(border=True):
             meta_c1, meta_c2, meta_c3, meta_c4 = st.columns(4)
@@ -194,13 +204,17 @@ def render_roznama_page(roznama_state: RoznamaState):
     table_data = []
     for r in roznama_state.transformed_records:
         source_r = next((s for s in roznama_state.source_records if s.record_sequence == r.record_sequence), None)
+        status_label = "✅ Reviewed" if r.record_sequence in roznama_state.reviewed_sequences else "⏳ Pending"
+        if r.record_sequence in roznama_state.flagged_fidelity_records:
+            status_label = "⚠️ मजकूर तपासणी"
+
         table_data.append({
             "Seq": r.record_sequence,
             "Orig SN": source_r.serial_number if source_r else "",
             "आजची दिनांक": r.today_date,
             "दैनंदिन कामकाज तपशील": r.proceedings_detail,
             "पुढे/निकाल तारीख": r.next_date or "---",
-            "Status": "✅ Reviewed" if r.record_sequence in roznama_state.reviewed_sequences else "⏳ Pending"
+            "Status": status_label
         })
     st.dataframe(table_data, use_container_width=True, hide_index=True)
 
