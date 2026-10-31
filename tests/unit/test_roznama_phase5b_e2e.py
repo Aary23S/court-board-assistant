@@ -153,6 +153,7 @@ class TestPhase5BEndToEnd:
             state.process_pdf(str(pdf_path), filename=fname)
             assert len(state.transformed_records) == exp_count
             state.mark_all_reviewed()
+            state.approve_all_category_c_events()
             assert state.is_generation_eligible() is True
             ok = state.generate_pdf()
             assert ok is True

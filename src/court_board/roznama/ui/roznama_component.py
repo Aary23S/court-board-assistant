@@ -114,7 +114,7 @@ def render_roznama_page(roznama_state: RoznamaState):
         options=[r.record_sequence for r in roznama_state.transformed_records],
         format_func=lambda s: (
             f"Record #{s} — {next(r.today_date for r in roznama_state.transformed_records if r.record_sequence == s)} "
-            f"({'⚠️ मजकूर तपासणी' if s in roznama_state.flagged_fidelity_records else ('✅ Reviewed' if s in roznama_state.reviewed_sequences else '⏳ Pending')})"
+            f"({'🛑 Category C Review' if (s in roznama_state.category_c_events and any(e['event_id'] not in roznama_state.approved_category_c_events.get(s, set()) for e in roznama_state.category_c_events[s])) else ('⚠️ मजकूर तपासणी' if s in roznama_state.flagged_fidelity_records else ('✅ Reviewed' if s in roznama_state.reviewed_sequences else '⏳ Pending'))})"
         )
     )
 
@@ -135,6 +135,34 @@ def render_roznama_page(roznama_state: RoznamaState):
                 f"⚠️ **मराठी मजकूर तपासणी सूचना (Fidelity Notice for Record #{selected_seq}):** "
                 + "; ".join(roznama_state.flagged_fidelity_records[selected_seq])
             )
+
+        # Display Category C Discretionary Review if present
+        if selected_seq in roznama_state.category_c_events:
+            cat_c_list = roznama_state.category_c_events[selected_seq]
+            approved_set = roznama_state.approved_category_c_events.get(selected_seq, set())
+            for ev in cat_c_list:
+                ev_id = ev["event_id"]
+                is_appr = ev_id in approved_set
+                with st.expander(
+                    f"{'✅ Approved' if is_appr else '🛑 Action Required'}: {ev['title']} (Page {ev['page']})",
+                    expanded=(not is_appr)
+                ):
+                    st.markdown(f"**Context:** `{ev['raw_context']}`")
+                    st.markdown(f"**Reason:** {ev['reason']}")
+                    st.markdown(f"**Proposed Text:** `{ev['proposed_correction']}`")
+
+                    c_act1, c_act2 = st.columns([1, 1])
+                    with c_act1:
+                        if not is_appr:
+                            if st.button(f"✅ Accept Proposal ({ev['proposed_correction']})", key=f"appr_{ev_id}", use_container_width=True):
+                                roznama_state.approve_category_c_event(selected_seq, ev_id)
+                                st.rerun()
+                        else:
+                            st.success("Proposal approved by operator.")
+                    with c_act2:
+                        if st.button(f"↩️ Reject Proposal (Retain Original)", key=f"rej_{ev_id}", use_container_width=True):
+                            roznama_state.reject_category_c_event(selected_seq, ev_id, ev["raw_context"].split(" -> ")[0])
+                            st.rerun()
 
         with st.container(border=True):
             meta_c1, meta_c2, meta_c3, meta_c4 = st.columns(4)
@@ -207,6 +235,10 @@ def render_roznama_page(roznama_state: RoznamaState):
         status_label = "✅ Reviewed" if r.record_sequence in roznama_state.reviewed_sequences else "⏳ Pending"
         if r.record_sequence in roznama_state.flagged_fidelity_records:
             status_label = "⚠️ मजकूर तपासणी"
+        if (r.record_sequence in roznama_state.category_c_events and
+            any(e['event_id'] not in roznama_state.approved_category_c_events.get(r.record_sequence, set())
+                for e in roznama_state.category_c_events[r.record_sequence])):
+            status_label = "🛑 Category C Review"
 
         table_data.append({
             "Seq": r.record_sequence,

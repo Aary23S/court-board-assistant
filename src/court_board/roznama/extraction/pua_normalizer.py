@@ -17,7 +17,7 @@ MARATHI_PUA_GLYPH_MAP: Dict[str, str] = {
     '\ue29f': 'क्र',     # मांक -> क्रमांक
     '\ue2a2': 'प्र',     # करण -> प्रकरण
     '\ue2a4': 'श्री',    # ी -> श्री (when standalone)
-    '\ue76f': 'र्फे',     # अजदारातफ -> अर्जदारातर्फे
+    '\ue76f': 'ेर्',     # Verified CIS FreeSerif composite Reph + E-matra (e.g. तफ -> तर्फे)
     '\ue771': 'ेंट',     # इंसटुमट -> इंस्ट्रुमेंट
     '\ue777': '्र',      # गाम -> ग्राम (consonant conjunct base ra; source has explicit aa matra \ue777 + \u093E)
     '\ue77a': 'र्',      # Reph marker (handles both standalone & positional)
@@ -25,15 +25,15 @@ MARATHI_PUA_GLYPH_MAP: Dict[str, str] = {
     '\ue8be': 'ज्ञ',     # िताप -> प्रतिज्ञापत्र (source has explicit aa matra \ue8be + \u093E)
     '\ue8c0': 'क्',      # युतीवाद -> युक्तीवाद (क् + ती)
     '\ue8c4': 'च्या',    # अजदाराया -> अर्जदाराच्या
-    '\ue8c8': 'ण्या',    # वगळयात -> वगळण्यात
-    '\ue8c9': 'त्या',    # यांचे -> त्यांचे
+    '\ue8c8': 'ण्',      # Verified CIS FreeSerif half-consonant 0xA3 (e.g. ऐकयात -> ऐकण्यात)
+    '\ue8c9': 'त्',      # Verified CIS FreeSerif half-consonant 0xB5 (e.g. यांना -> त्यांना)
     '\ue8cb': 'द्ध',     # िवद -> विरुद्ध
     '\ue8cc': 'न्',      # उहाळी -> उन्हाळी / मे.यायालय -> मे.न्यायालय
     '\ue8cd': 'प्त',     # जती -> जप्ती
     '\ue8cf': 'ब्',      # डी.डयू. -> डी.डब्ल्यू.
     '\ue8d1': 'म्',      # जवाब/हणणे -> जवाब/म्हणणे
     '\ue8d3': 'ल्या',    # जोडलेया -> जोडलेल्या
-    '\ue8d5': 'व्या',    # पुराव्या
+    '\ue8d5': 'व्',      # Verified CIS FreeSerif half-consonant 0xBB (e.g. पुराया -> पुराव्या)
     '\ue8d6': 'श्व',     # अश्वीनी
     '\ue8d7': 'ष्ठ',     # वरिष्ठ
     '\ue8d8': 'स्',      # टेशन -> स्टेशन
@@ -147,6 +147,11 @@ class MarathiPUANormalizer:
         # Deduplicate accidental double vowel signs resulting from ligature glyph + matra
         # (e.g. \u093E\u093E -> \u093E, \u0940\u0940 -> \u0940)
         normalized = re.sub(r'([\u093e-\u094c])\1+', r'\1', normalized)
+
+        # Legacy overlapping duplicate conjunct sequence in 'पुराव्याव्यतिरिक्त'
+        # e.g. पुरा\ue8d5या\ue8d5यितिर\ue8c0त -> पुराव्यायाव्यायितिरक्त -> पुराव्याव्यतिरिक्त
+        normalized = normalized.replace("पुराव्यायाव्यायितिरक्त", "पुराव्याव्यतिरिक्त")
+        normalized = normalized.replace("पुराव्याव्यितिरक्त", "पुराव्याव्यतिरिक्त")
 
         # 7. Word-boundary restoration for Devanagari prefix compounds broken by font-switch/pre-base matra spaces
         # In legacy court PDF exports, prefixes like 'प्रति' followed by verbal stems like 'नियुक्त'

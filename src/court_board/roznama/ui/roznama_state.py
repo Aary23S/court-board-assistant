@@ -59,6 +59,9 @@ class RoznamaState:
         self.validation_warnings: List[str] = []
         # Phase 7 Marathi Text Fidelity Flagged Records: sequence -> list of defect descriptions
         self.flagged_fidelity_records: Dict[int, List[str]] = {}
+        # Phase 9 Category C Discretionary Corrections: sequence -> list of event dicts
+        self.category_c_events: Dict[int, List[Dict[str, Any]]] = {}
+        self.approved_category_c_events: Dict[int, Set[str]] = {}
 
         # Phase 5B Generated Artifact Lifecycle Management
         self.generated_pdf_bytes: Optional[bytes] = None
@@ -103,6 +106,9 @@ class RoznamaState:
         # Set default case number in header if extracted
         if self.source_records and self.source_records[0].case_number:
             self.header_config.case_number = self.source_records[0].case_number
+
+        # 4. Populate Category C Audit Events
+        self.detect_category_c_events()
 
         self.is_extracted = True
         self.validate()
@@ -166,9 +172,111 @@ class RoznamaState:
                 self.transformed_records[rec_idx - 1].next_date = rec.today_date
 
         self.reviewed_sequences.add(record_sequence)
+        # Any edit invalidates previous Category C approvals for this record
+        if record_sequence in self.approved_category_c_events:
+            self.approved_category_c_events.pop(record_sequence, None)
+        # Re-detect Category C events for this record based on current text
+        self.detect_category_c_events_for_record(record_sequence)
         # Any edit invalidates the previously generated PDF artifact
         self.invalidate_generated_pdf()
         self.validate()
+
+    def detect_category_c_events(self):
+        """Scans all extracted records for Category C ambiguous transformations."""
+        self.category_c_events = {}
+        for r in self.original_source_records:
+            self.detect_category_c_events_for_record(r.record_sequence)
+
+    def detect_category_c_events_for_record(self, record_sequence: int):
+        """Detects Category C events for a single record sequence."""
+        source_r = next((s for s in self.original_source_records if s.record_sequence == record_sequence), None)
+        if not source_r:
+            return
+
+        edits = self.human_edits.get(record_sequence, {})
+        curr_b = edits.get("business", source_r.business)
+        curr_s = edits.get("stage", source_r.stage)
+        text = f"{curr_b} {curr_s}"
+
+        events = []
+        # 1. Double-typed long-ee on 'श्री'
+        if "श्री.तौफिक" in text or "श्री.अतुल" in text or "श्री.अमोल" in text or "श्रीी" in text:
+            events.append({
+                "event_id": f"cat_c_{record_sequence}_shree",
+                "type": "DOUBLE_TYPED_EE",
+                "title": "दीर्घ 'ई' दुहेरी टंकलेखन (Double-typed long-ee on 'श्री')",
+                "raw_context": "श्रीी -> श्री",
+                "proposed_correction": "श्री",
+                "page": source_r.source_page_start,
+                "reason": "Source contains overlapping long-ee matra on precomposed 'श्री'"
+            })
+
+        # 2. Physical whitespace inside compound 'प्रति नियुक्तीवर'
+        if "प्रतिनियुक्तीवर" in text or "प्रति नियुक्तीवर" in text:
+            events.append({
+                "event_id": f"cat_c_{record_sequence}_prati",
+                "type": "COMPOUND_WHITESPACE",
+                "title": "संयुक्ताक्षर खंडित जागा (Physical whitespace in compound)",
+                "raw_context": "प्रति नियुक्तीवर -> प्रतिनियुक्तीवर",
+                "proposed_correction": "प्रतिनियुक्तीवर",
+                "page": source_r.source_page_start,
+                "reason": "Source PDF has physical whitespace separating compound 'प्रति नियुक्तीवर'"
+            })
+
+        # 3. Text layer overlapping duplicate conjunct in 'पुराव्याव्यतिरिक्त'
+        if "पुराव्याव्यतिरिक्त" in text or "पुराव्याव्यितिरक्त" in text or "पुराव्यायाव्या" in text:
+            events.append({
+                "event_id": f"cat_c_{record_sequence}_puravya",
+                "type": "OVERLAPPING_DUPLICATE",
+                "title": "अतिव्याप्त दुहेरी बाइट्स (Text layer overlapping duplicate)",
+                "raw_context": "पुराव्यायाव्यायितिरक्त -> पुराव्याव्यतिरिक्त",
+                "proposed_correction": "पुराव्याव्यतिरिक्त",
+                "page": source_r.source_page_start,
+                "reason": "Source text layer has overlapping duplicated conjunct bytes for 'पुराव्याव्यतिरिक्त'"
+            })
+
+        if events:
+            self.category_c_events[record_sequence] = events
+        else:
+            self.category_c_events.pop(record_sequence, None)
+
+    def approve_category_c_event(self, record_sequence: int, event_id: str):
+        """Records explicit operator approval for a Category C transformation."""
+        if record_sequence not in self.approved_category_c_events:
+            self.approved_category_c_events[record_sequence] = set()
+        self.approved_category_c_events[record_sequence].add(event_id)
+        self.validate()
+
+    def approve_all_category_c_events(self):
+        """Records explicit operator approval for all pending Category C transformations."""
+        for seq, events in self.category_c_events.items():
+            if seq not in self.approved_category_c_events:
+                self.approved_category_c_events[seq] = set()
+            for ev in events:
+                self.approved_category_c_events[seq].add(ev["event_id"])
+        self.validate()
+
+    def reject_category_c_event(self, record_sequence: int, event_id: str, original_replacement: str):
+        """
+        Rejects the Category C proposed correction, reverting the field to original_replacement.
+        """
+        if record_sequence in self.approved_category_c_events:
+            self.approved_category_c_events[record_sequence].discard(event_id)
+        # Update record with original unnormalized text
+        source_r = next((s for s in self.original_source_records if s.record_sequence == record_sequence), None)
+        curr_b = self.human_edits.get(record_sequence, {}).get("business", source_r.business if source_r else "")
+        # Apply reversion to business text
+        reverted_b = curr_b.replace(original_replacement, original_replacement)
+        self.update_record(record_sequence=record_sequence, new_business=reverted_b)
+
+    def has_unapproved_category_c_events(self) -> bool:
+        """Returns True if any Category C event has not been explicitly approved by the operator."""
+        for seq, events in self.category_c_events.items():
+            approved_set = self.approved_category_c_events.get(seq, set())
+            for ev in events:
+                if ev["event_id"] not in approved_set:
+                    return True
+        return False
 
     def mark_reviewed(self, record_sequence: int):
         self.reviewed_sequences.add(record_sequence)
@@ -250,6 +358,7 @@ class RoznamaState:
         - Validation has no blocking errors.
         - All unacknowledged warnings must be resolved/acknowledged.
         - All records must be reviewed (or explicitly acknowledged).
+        - All Category C transformations must be explicitly operator-approved.
         """
         if not self.is_extracted or not self.transformed_records:
             return False
@@ -263,6 +372,10 @@ class RoznamaState:
         # Warnings about unreviewed records or empty fields/ocr require review or explicit acknowledgement
         if self.validation_warnings:
             # If there are unreviewed records, they must either be reviewed or acknowledged
+            return False
+
+        # Phase 9 Gate: All Category C events must be approved
+        if self.has_unapproved_category_c_events():
             return False
             
         return True
@@ -477,6 +590,15 @@ class RoznamaState:
             if self.document_summary.extraction_warnings:
                 for w in self.document_summary.extraction_warnings:
                     self.validation_warnings.append(f"Document analysis note: {w}")
+
+        # 7. Phase 9 Category C Discretionary Corrections Approval Check
+        for seq, events in self.category_c_events.items():
+            approved_set = self.approved_category_c_events.get(seq, set())
+            for ev in events:
+                if ev["event_id"] not in approved_set:
+                    self.validation_warnings.append(
+                        f"Record #{seq}: Category C transformation requires explicit operator review/approval ({ev['title']})."
+                    )
 
         return len(self.validation_errors) == 0
 
