@@ -7,46 +7,66 @@ from court_board.ui.components.routing_component import render_routing_page
 from court_board.ui.components.final_board_component import render_final_board_page
 from court_board.ui.components.export_component import render_export_page
 
+from court_board.roznama.ui.roznama_state import RoznamaState
+from court_board.roznama.ui.roznama_component import render_roznama_page
+
 st.set_page_config(
-    page_title="Court Board Assistant",
+    page_title="Court Board Assistant & Roznama Generator",
     page_icon="⚖️",
     layout="wide"
 )
 
-# Initialize Session State
+# Initialize Session State for Court Board
 if "app_state" not in st.session_state or not hasattr(st.session_state["app_state"], "manual_stage_overrides"):
     st.session_state["app_state"] = AppState()
+
+# Initialize Session State for Roznama (Completely isolated)
+if "roznama_state" not in st.session_state:
+    st.session_state["roznama_state"] = RoznamaState()
 
 app_state = st.session_state["app_state"]
 if not hasattr(app_state, "manual_stage_overrides"):
     app_state.manual_stage_overrides = {}
 
-st.title("⚖️ COURT BOARD ASSISTANT")
-st.caption("Daily Court Board & Stagewise Review System — Phase 7 GUI")
+roznama_state = st.session_state["roznama_state"]
 
-# Sidebar navigation
-st.sidebar.title("Workflow Navigation")
-page = st.sidebar.radio(
-    "Select Step",
-    [
-        "1. Import Source",
-        "2. Classification Review",
-        "3. Stagewise Visualization",
-        "4. Routing Review",
-        "5. Final Board Preview",
-        "6. Validation Gate & Export"
-    ]
+st.title("⚖️ COURT BOARD ASSISTANT")
+
+# Top-level Module Selector
+module_choice = st.sidebar.selectbox(
+    "Application Mode (कार्यप्रणाली निवडा)",
+    ["Court Board Automation", "Roznama PDF Generator"],
+    index=0
 )
 
-if page == "1. Import Source":
-    render_import_page(app_state)
-elif page == "2. Classification Review":
-    render_classification_page(app_state)
-elif page == "3. Stagewise Visualization":
-    render_stagewise_page(app_state)
-elif page == "4. Routing Review":
-    render_routing_page(app_state)
-elif page == "5. Final Board Preview":
-    render_final_board_page(app_state)
-elif page == "6. Validation Gate & Export":
-    render_export_page(app_state)
+if module_choice == "Roznama PDF Generator":
+    render_roznama_page(roznama_state)
+else:
+    st.caption("Daily Court Board & Stagewise Review System — Phase 7 GUI")
+
+    # Sidebar navigation for Court Board
+    st.sidebar.title("Workflow Navigation")
+    page = st.sidebar.radio(
+        "Select Step",
+        [
+            "1. Import Source",
+            "2. Classification Review",
+            "3. Stagewise Visualization",
+            "4. Routing Review",
+            "5. Final Board Preview",
+            "6. Validation Gate & Export"
+        ]
+    )
+
+    if page == "1. Import Source":
+        render_import_page(app_state)
+    elif page == "2. Classification Review":
+        render_classification_page(app_state)
+    elif page == "3. Stagewise Visualization":
+        render_stagewise_page(app_state)
+    elif page == "4. Routing Review":
+        render_routing_page(app_state)
+    elif page == "5. Final Board Preview":
+        render_final_board_page(app_state)
+    elif page == "6. Validation Gate & Export":
+        render_export_page(app_state)

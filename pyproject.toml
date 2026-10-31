@@ -15,6 +15,7 @@ dependencies = [
     "python-calamine>=0.2.0",
     "pydantic>=2.4.0",
     "streamlit>=1.28.0",
+    "python-docx>=1.1.0",
 ]
 
 [project.optional-dependencies]
