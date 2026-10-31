@@ -1,71 +1,88 @@
 """
 HTML Template and Style Builder for Roznama PDF Generator.
-Reproduces target_roznama_sample.pdf dimensions, borders, and typography.
+Reproduces court-approved sample dimensions, borders, typography, and continuous flow.
+Features:
+- Compact repeated heading: 'प्रकरण क्रमांक: [case_number]' for every hearing.
+- 3-column table: आजची दिनांक, दैनंदिन कामकाज तपशील, पुढे/निकाल तारीख.
+- Line 1: Business description, Line 2: Stage (no literal 'Stage:' label).
+- Dotted horizontal separator between hearings.
+- Continuous pagination with no arbitrary page breaks.
 """
-from typing import List, Optional
-from ..domain.models import RoznamaRecord, RoznamaHeader
+import html
+from typing import Optional, List
 from .font_manager import FontManager
+from .presentation_model import RoznamaPresentationModel, HearingPresentationItem
 
 class RoznamaHTMLBuilder:
     """
-    Builds printable HTML matching target_roznama_sample.pdf specifications.
+    Builds printable HTML strictly matching court-approved reference layout.
     """
     def __init__(self, font_manager: Optional[FontManager] = None):
         self.font_manager = font_manager or FontManager()
 
-    def build_html(self, records: List[RoznamaRecord], header: Optional[RoznamaHeader] = None) -> str:
+    def build_html_from_presentation(self, model: RoznamaPresentationModel) -> str:
+        """
+        Builds HTML from a canonical RoznamaPresentationModel.
+        """
         font_b64 = self.font_manager.get_base64_font()
-        h = header or RoznamaHeader()
+        sections_html = []
+        total_items = len(model.items)
 
-        # Build case info rows dynamically without misleading default dashes
-        case_rows = []
-        c_num = h.case_number or ""
-        cnr_num = h.cnr_number or ""
+        for idx, item in enumerate(model.items):
+            # Format Col 2: Business on line 1, Stage on line 2
+            b_escaped = html.escape(item.business_text).replace("\n", "<br>")
+            s_escaped = html.escape(item.stage_text).replace("\n", "<br>")
 
-        if c_num or cnr_num:
-            c1 = f"<strong>प्रकरण क्रमांक:</strong> {c_num}" if c_num else ""
-            c2 = f"<strong>सीएनआर क्रमांक:</strong> {cnr_num}" if cnr_num else ""
-            case_rows.append(f"""
-            <tr>
-                <td style="width: 55%;">{c1}</td>
-                <td style="width: 45%;">{c2}</td>
-            </tr>
-            """)
+            if b_escaped and s_escaped:
+                detail_html = f"<div class=\"business-desc\">{b_escaped}</div><div class=\"stage-desc\">{s_escaped}</div>"
+            elif b_escaped:
+                detail_html = f"<div class=\"business-desc\">{b_escaped}</div>"
+            elif s_escaped:
+                detail_html = f"<div class=\"stage-desc\">{s_escaped}</div>"
+            else:
+                detail_html = ""
 
-        parties_val = h.parties or "सरकार तर्फे पोस्टे वि. आरोपी"
-        case_rows.append(f"""
-        <tr>
-            <td colspan="2"><strong>पक्षकार:</strong> {parties_val}</td>
-        </tr>
-        """)
+            judge_display = html.escape(item.judge_designation or "न्यायाधीश")
+            heading_escaped = html.escape(item.case_heading)
+            is_last = (idx == total_items - 1)
 
-        if h.app_advocate:
-            case_rows.append(f"""
-            <tr>
-                <td colspan="2"><strong>सहाय्यक सरकारी अभियोक्ता / वकील:</strong> {h.app_advocate}</td>
-            </tr>
-            """)
+            # Dotted separator between hearings (omitted after final hearing)
+            separator_html = ""
+            if not is_last:
+                separator_html = '<div class="hearing-separator"></div>'
 
-        case_info_html = "".join(case_rows)
-        rows_html = []
-        for r in records:
-            next_date_display = r.next_date if r.next_date else ""
-            judge_display = r.judge_designation if r.judge_designation else "न्यायाधीश"
+            section = f"""
+            <div class="hearing-section">
+                <div class="case-heading">{heading_escaped}</div>
+                <table class="proceedings-table">
+                    <thead>
+                        <tr>
+                            <th class="col-date">आजची दिनांक</th>
+                            <th class="col-detail">दैनंदिन कामकाज तपशील</th>
+                            <th class="col-next-date">पुढे/निकाल तारीख</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="record-row">
+                            <td class="col-date">{html.escape(item.hearing_date)}</td>
+                            <td class="col-detail">
+                                <div class="detail-container">
+                                    {detail_html}
+                                    <div class="judge-signature">{judge_display}</div>
+                                </div>
+                            </td>
+                            <td class="col-next-date">{html.escape(item.next_date)}</td>
+                        </tr>
+                    </tbody>
+                </table>
+                {separator_html}
+            </div>
+            """
+            sections_html.append(section)
 
-            rows_html.append(f"""
-            <tr class="record-row">
-                <td class="col-date">{r.today_date}</td>
-                <td class="col-detail">
-                    <div class="detail-text">{r.proceedings_detail}</div>
-                    <div class="judge-signature">{judge_display}</div>
-                </td>
-                <td class="col-next-date">{next_date_display}</td>
-            </tr>
-            """)
+        body_content = "\n".join(sections_html)
 
-        table_rows = "\n".join(rows_html)
-
-        html = f"""<!DOCTYPE html>
+        html_doc = f"""<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8">
@@ -94,24 +111,18 @@ body {{
     padding: 0;
 }}
 
-/* Header Banner Section */
-.court-header {{
-    text-align: center;
+.hearing-section {{
     margin-bottom: 8px;
+    page-break-inside: auto;
 }}
-.judge-title {{
-    font-size: 11pt;
+
+/* Repeated Case Heading for Every Hearing */
+.case-heading {{
+    font-size: 10.5pt;
     font-weight: bold;
     margin-bottom: 4px;
-}}
-.case-info-grid {{
-    width: 100%;
-    margin-bottom: 8px;
-    font-size: 10pt;
-}}
-.case-info-grid td {{
-    padding: 2px 0;
-    vertical-align: top;
+    margin-top: 6px;
+    color: #000;
 }}
 
 /* Table Layout (Exactly 3 Columns) */
@@ -125,7 +136,7 @@ body {{
 .proceedings-table th {{
     border: 0.5pt solid #000;
     padding: 4px;
-    font-size: 10.5pt;
+    font-size: 10pt;
     font-weight: bold;
     text-align: center;
     background-color: #fafafa;
@@ -140,31 +151,47 @@ body {{
 
 /* Column Width Ratios matching target_roznama_sample.pdf (94.7pt, 301.7pt, 113.8pt) */
 .col-date {{
-    width: 18.0%;
+    width: 18.6%;
     text-align: center;
     font-size: 10pt;
 }}
 
 .col-detail {{
-    width: 60.0%;
+    width: 59.1%;
     text-align: justify;
     font-size: 9.5pt;
 }}
 
 .col-next-date {{
-    width: 22.0%;
+    width: 22.3%;
     text-align: center;
     font-size: 10pt;
 }}
 
+.business-desc {{
+    margin-bottom: 4px;
+}}
+
+.stage-desc {{
+    margin-top: 2px;
+}}
+
 .judge-signature {{
     text-align: right;
-    margin-top: 12px;
+    margin-top: 8px;
     font-weight: bold;
     font-size: 9pt;
 }}
 
-/* Pagination & Page Breaks */
+/* Dotted Horizontal Separator Between Hearing Sections */
+.hearing-separator {{
+    border-bottom: 1.2pt dotted #444;
+    margin-top: 10px;
+    margin-bottom: 8px;
+    width: 100%;
+}}
+
+/* Clean Pagination: Avoid splitting single record rows if possible, but allow natural flow */
 tr.record-row {{
     page-break-inside: avoid;
 }}
@@ -176,31 +203,20 @@ thead {{
 </head>
 <body>
 
-<div class="court-header">
-    <div class="judge-title">
-        {h.judge_name or "श्री. जे. व्ही. पालीवाल"}<br>
-        १३ वे सह दिवाणी न्यायाधीश वरिष्ठ स्तर तथा अति. मुख्य न्यायदंडाधिकारी, नाशिक यांचे न्यायालयात
-    </div>
-</div>
-
-<table class="case-info-grid">
-    {case_info_html}
-</table>
-
-<table class="proceedings-table">
-    <thead>
-        <tr>
-            <th class="col-date">आजची दिनांक</th>
-            <th class="col-detail">दैनंदिन कामकाज तपशील</th>
-            <th class="col-next-date">पुढे/निकाल तारीख</th>
-        </tr>
-    </thead>
-    <tbody>
-        {table_rows}
-    </tbody>
-</table>
+{body_content}
 
 </body>
 </html>"""
-        return html
+        return html_doc
 
+    def build_html(self, records: list, header=None) -> str:
+        """
+        Legacy compatibility adapter: builds presentation model on the fly if raw RoznamaRecord list passed.
+        """
+        model = RoznamaPresentationModel.from_state_records(
+            transformed_records=records,
+            source_records=[],
+            human_edits={},
+            header_case_number=header.case_number if header else None
+        )
+        return self.build_html_from_presentation(model)

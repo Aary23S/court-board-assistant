@@ -2,6 +2,7 @@
 State management for Roznama workflow in Streamlit.
 Completely isolated from Court Board AppState.
 """
+from court_board.roznama.rendering.presentation_model import RoznamaPresentationModel
 import copy
 from datetime import datetime
 from pathlib import Path
@@ -63,7 +64,7 @@ class RoznamaState:
         self.category_c_events: Dict[int, List[Dict[str, Any]]] = {}
         self.approved_category_c_events: Dict[int, Set[str]] = {}
 
-        # Phase 5B Generated Artifact Lifecycle Management
+        # Phase 5B Generated Artifact Lifecycle Management (PDF, XLSX, DOCX)
         self.generated_pdf_bytes: Optional[bytes] = None
         self.generated_pdf_path: Optional[str] = None
         self.generated_pdf_filename: Optional[str] = None
@@ -72,6 +73,17 @@ class RoznamaState:
         self.generated_timestamp: Optional[str] = None
         self.generated_fingerprint: Optional[str] = None
         self.generation_error: Optional[str] = None
+
+        # Phase 10 Multi-Format Exports
+        self.generated_xlsx_bytes: Optional[bytes] = None
+        self.generated_xlsx_path: Optional[str] = None
+        self.generated_xlsx_filename: Optional[str] = None
+        self.generation_xlsx_error: Optional[str] = None
+
+        self.generated_docx_bytes: Optional[bytes] = None
+        self.generated_docx_path: Optional[str] = None
+        self.generated_docx_filename: Optional[str] = None
+        self.generation_docx_error: Optional[str] = None
 
     def process_pdf(self, file_path: str, filename: str = "", file_bytes: bytes = None):
         """
@@ -294,7 +306,7 @@ class RoznamaState:
         self.acknowledged_warnings.discard(warning_key)
 
     def invalidate_generated_pdf(self):
-        """Invalidates any generated PDF artifact when records or source inputs change."""
+        """Invalidates all generated export artifacts (PDF, XLSX, DOCX) when records or source inputs change."""
         self.generated_pdf_bytes = None
         if self.generated_pdf_path and Path(self.generated_pdf_path).exists():
             try:
@@ -308,6 +320,32 @@ class RoznamaState:
         self.generated_timestamp = None
         self.generated_fingerprint = None
         self.generation_error = None
+
+        # Invalidate XLSX
+        self.generated_xlsx_bytes = None
+        if self.generated_xlsx_path and Path(self.generated_xlsx_path).exists():
+            try:
+                Path(self.generated_xlsx_path).unlink(missing_ok=True)
+            except Exception:
+                pass
+        self.generated_xlsx_path = None
+        self.generated_xlsx_filename = None
+        self.generation_xlsx_error = None
+
+        # Invalidate DOCX
+        self.generated_docx_bytes = None
+        if self.generated_docx_path and Path(self.generated_docx_path).exists():
+            try:
+                Path(self.generated_docx_path).unlink(missing_ok=True)
+            except Exception:
+                pass
+        self.generated_docx_path = None
+        self.generated_docx_filename = None
+        self.generation_docx_error = None
+
+    def invalidate_all_exports(self):
+        """Alias for invalidate_generated_pdf."""
+        self.invalidate_generated_pdf()
 
     def compute_data_fingerprint(self) -> str:
         """
@@ -325,13 +363,20 @@ class RoznamaState:
             h.update(str(r.next_date).encode("utf-8"))
         return h.hexdigest()
 
-    def generate_sanitized_filename(self) -> str:
+    def get_presentation_model(self) -> "RoznamaPresentationModel":
+        """Builds a shared presentation model from the current reviewed state."""
+        from court_board.roznama.rendering.presentation_model import RoznamaPresentationModel
+        return RoznamaPresentationModel.from_state_records(
+            transformed_records=self.transformed_records,
+            source_records=self.original_source_records,
+            human_edits=self.human_edits,
+            header_case_number=self.header_config.case_number
+        )
+
+    def generate_sanitized_filename(self, extension: str = "pdf") -> str:
         """
-        Generates a clean, safe output PDF filename based on source filename or case number.
-        Examples:
-        - 'D.V. 260 of 2024.pdf' -> 'Roznama_DV_260_2024.pdf'
-        - 'M.A.919 of 2020.pdf' -> 'Roznama_MA_919_2020.pdf'
-        - 'S.C.C. 9311 of 2019.pdf' -> 'Roznama_SCC_9311_2019.pdf'
+        Generates a clean, safe output filename based on source filename or case number.
+        Extension can be 'pdf', 'xlsx', or 'docx'.
         """
         raw_name = self.source_filename or self.header_config.case_number or "Court_Proceeding"
         if raw_name.lower().endswith(".pdf"):
@@ -348,7 +393,8 @@ class RoznamaState:
         clean_name = re.sub(r"_+", "_", clean_name)
         if not clean_name:
             clean_name = "Document"
-        return f"Roznama_{clean_name}.pdf"
+        ext = extension.lstrip(".")
+        return f"Roznama_{clean_name}.{ext}"
 
     def is_generation_eligible(self) -> bool:
         """
@@ -396,16 +442,17 @@ class RoznamaState:
 
         try:
             renderer = RoznamaPDFRenderer()
-            out_filename = self.generate_sanitized_filename()
+            out_filename = self.generate_sanitized_filename("pdf")
             
             # Application-managed output directory in temp
             out_dir = Path(tempfile.gettempdir()) / "roznama_generated_output"
             out_dir.mkdir(parents=True, exist_ok=True)
             out_path = out_dir / out_filename
 
-            # Render records strictly using latest reviewed transformed records
+            # Render records strictly using shared presentation model
+            model = self.get_presentation_model()
             rendered_file = renderer.render(
-                records=self.transformed_records,
+                records=model,
                 output_path=out_path,
                 header=self.header_config
             )
@@ -437,6 +484,86 @@ class RoznamaState:
         except Exception as e:
             self.generation_error = f"PDF generation error: {str(e)}"
             self.invalidate_generated_pdf()
+            return False
+
+    def generate_excel(self) -> bool:
+        """
+        Generates the Roznama Excel (.xlsx) workbook using RoznamaExcelRenderer.
+        """
+        import tempfile
+        from court_board.roznama.rendering.excel_renderer import RoznamaExcelRenderer
+
+        self.generation_xlsx_error = None
+
+        if not self.is_generation_eligible():
+            self.generation_xlsx_error = "Generation gate check failed. Please resolve all validation errors and review/acknowledge all warnings."
+            return False
+
+        try:
+            renderer = RoznamaExcelRenderer()
+            out_filename = self.generate_sanitized_filename("xlsx")
+            out_dir = Path(tempfile.gettempdir()) / "roznama_generated_output"
+            out_dir.mkdir(parents=True, exist_ok=True)
+            out_path = out_dir / out_filename
+
+            model = self.get_presentation_model()
+            rendered_file = renderer.render(
+                presentation_model=model,
+                output_path=out_path,
+                header=self.header_config
+            )
+
+            if not rendered_file.exists() or rendered_file.stat().st_size == 0:
+                self.generation_xlsx_error = "Rendered Excel file was not created or is 0 bytes."
+                return False
+
+            self.generated_xlsx_bytes = rendered_file.read_bytes()
+            self.generated_xlsx_path = str(rendered_file)
+            self.generated_xlsx_filename = out_filename
+            return True
+
+        except Exception as e:
+            self.generation_xlsx_error = f"Excel generation error: {str(e)}"
+            return False
+
+    def generate_word(self) -> bool:
+        """
+        Generates the Roznama Word (.docx) document using RoznamaWordRenderer.
+        """
+        import tempfile
+        from court_board.roznama.rendering.word_renderer import RoznamaWordRenderer
+
+        self.generation_docx_error = None
+
+        if not self.is_generation_eligible():
+            self.generation_docx_error = "Generation gate check failed. Please resolve all validation errors and review/acknowledge all warnings."
+            return False
+
+        try:
+            renderer = RoznamaWordRenderer()
+            out_filename = self.generate_sanitized_filename("docx")
+            out_dir = Path(tempfile.gettempdir()) / "roznama_generated_output"
+            out_dir.mkdir(parents=True, exist_ok=True)
+            out_path = out_dir / out_filename
+
+            model = self.get_presentation_model()
+            rendered_file = renderer.render(
+                presentation_model=model,
+                output_path=out_path,
+                header=self.header_config
+            )
+
+            if not rendered_file.exists() or rendered_file.stat().st_size == 0:
+                self.generation_docx_error = "Rendered Word document was not created or is 0 bytes."
+                return False
+
+            self.generated_docx_bytes = rendered_file.read_bytes()
+            self.generated_docx_path = str(rendered_file)
+            self.generated_docx_filename = out_filename
+            return True
+
+        except Exception as e:
+            self.generation_docx_error = f"Word generation error: {str(e)}"
             return False
 
     @staticmethod

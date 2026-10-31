@@ -299,46 +299,83 @@ def render_roznama_page(roznama_state: RoznamaState):
         st.info("ℹ️ Complete review of all records and acknowledge any warnings above to enable PDF generation.")
 
     # -------------------------------------------------------------
-    # Step 6: PDF Generation, Preview & Download (Phase 5B)
+    # Step 6: Multi-Format Export (PDF, Excel, Word), Preview & Download
     # -------------------------------------------------------------
     st.divider()
-    st.subheader("५. रोजनामा PDF निर्मिती व डाऊनलोड (Generate, Preview & Download)")
+    st.subheader("५. रोजनामा निर्यात व डाऊनलोड (Multi-Format Export: PDF, Excel, Word)")
 
-    gen_col1, gen_col2 = st.columns([2, 1])
+    gen_col1, gen_col2, gen_col3 = st.columns(3)
 
+    # 1. PDF Export Column
     with gen_col1:
-        gen_button_label = "⚡ Generate Final Roznama PDF (रोजनामा तयार करा)"
-        if roznama_state.generated_pdf_bytes:
-            gen_button_label = "🔄 Regenerate PDF (रोजनामा पुन्हा तयार करा)"
-
-        if st.button(
-            gen_button_label,
-            disabled=not eligible,
-            type="primary",
-            use_container_width=True,
-            key="btn_generate_roznama_pdf"
-        ):
-            with st.spinner("Generating official Roznama PDF with Lohit Marathi font... (PDF तयार करत आहे...)"):
-                success = roznama_state.generate_pdf()
-                if success:
-                    st.success("🎉 Roznama PDF generated successfully!")
+        st.markdown("##### 📄 PDF Document")
+        pdf_btn_label = "⚡ Generate PDF" if not roznama_state.generated_pdf_bytes else "🔄 Regenerate PDF"
+        if st.button(pdf_btn_label, disabled=not eligible, type="primary", use_container_width=True, key="btn_gen_pdf"):
+            with st.spinner("Generating official Roznama PDF..."):
+                ok = roznama_state.generate_pdf()
+                if ok:
+                    st.success("PDF Ready!")
                     st.rerun()
                 else:
-                    st.error(f"❌ Failed to generate PDF: {roznama_state.generation_error}")
+                    st.error(roznama_state.generation_error)
 
-    with gen_col2:
         if roznama_state.generated_pdf_bytes:
             st.download_button(
                 label=f"📥 Download {roznama_state.generated_pdf_filename}",
                 data=roznama_state.generated_pdf_bytes,
                 file_name=roznama_state.generated_pdf_filename,
                 mime="application/pdf",
-                type="primary",
                 use_container_width=True,
-                key="btn_download_roznama_pdf"
+                key="btn_download_pdf"
             )
 
-    # Preview Area
+    # 2. Excel (.xlsx) Export Column
+    with gen_col2:
+        st.markdown("##### 📊 Excel (.xlsx)")
+        xlsx_btn_label = "⚡ Generate Excel" if not roznama_state.generated_xlsx_bytes else "🔄 Regenerate Excel"
+        if st.button(xlsx_btn_label, disabled=not eligible, use_container_width=True, key="btn_gen_xlsx"):
+            with st.spinner("Generating Roznama Excel sheet..."):
+                ok = roznama_state.generate_excel()
+                if ok:
+                    st.success("Excel Ready!")
+                    st.rerun()
+                else:
+                    st.error(roznama_state.generation_xlsx_error)
+
+        if roznama_state.generated_xlsx_bytes:
+            st.download_button(
+                label=f"📥 Download {roznama_state.generated_xlsx_filename}",
+                data=roznama_state.generated_xlsx_bytes,
+                file_name=roznama_state.generated_xlsx_filename,
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True,
+                key="btn_download_xlsx"
+            )
+
+    # 3. Word (.docx) Export Column
+    with gen_col3:
+        st.markdown("##### 📝 Word (.docx)")
+        docx_btn_label = "⚡ Generate Word" if not roznama_state.generated_docx_bytes else "🔄 Regenerate Word"
+        if st.button(docx_btn_label, disabled=not eligible, use_container_width=True, key="btn_gen_docx"):
+            with st.spinner("Generating Roznama Word document..."):
+                ok = roznama_state.generate_word()
+                if ok:
+                    st.success("Word Ready!")
+                    st.rerun()
+                else:
+                    st.error(roznama_state.generation_docx_error)
+
+        if roznama_state.generated_docx_bytes:
+            st.download_button(
+                label=f"📥 Download {roznama_state.generated_docx_filename}",
+                data=roznama_state.generated_docx_bytes,
+                file_name=roznama_state.generated_docx_filename,
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                use_container_width=True,
+                key="btn_download_docx"
+            )
+
+    # Preview Area for Generated PDF
     if roznama_state.generated_pdf_bytes and roznama_state.generated_pdf_path:
         with st.container(border=True):
             st.markdown("### 📄 Generated PDF Details & Preview")

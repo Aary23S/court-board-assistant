@@ -1,9 +1,9 @@
 """
 PDF Renderer implementation using Headless Chrome / Edge with HTML+CSS.
-Provides high-fidelity OpenType Devanagari shaping and exact target layout fidelity.
+Provides high-fidelity OpenType Devanagari shaping and exact court-approved target layout fidelity.
 """
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Union
 import subprocess
 import tempfile
 import shutil
@@ -11,10 +11,11 @@ import shutil
 from ..domain.models import RoznamaRecord, RoznamaHeader
 from .html_builder import RoznamaHTMLBuilder
 from .font_manager import FontManager
+from .presentation_model import RoznamaPresentationModel
 
 class RoznamaPDFRenderer:
     """
-    Renders transformed RoznamaRecord lists into a printable PDF reproducing target layout.
+    Renders transformed Roznama records or presentation model into a printable PDF.
     """
     def __init__(
         self,
@@ -48,12 +49,12 @@ class RoznamaPDFRenderer:
 
     def render(
         self,
-        records: List[RoznamaRecord],
+        records: Union[List[RoznamaRecord], RoznamaPresentationModel],
         output_path: Path,
         header: Optional[RoznamaHeader] = None
     ) -> Path:
         """
-        Renders records into a PDF file at output_path.
+        Renders records or RoznamaPresentationModel into a PDF file at output_path.
         """
         if not self.browser_path:
             raise RuntimeError(
@@ -64,8 +65,11 @@ class RoznamaPDFRenderer:
         out_path = Path(output_path).resolve()
         out_path.parent.mkdir(parents=True, exist_ok=True)
 
-        # 1. Build printable HTML with base64 embedded Lohit Devanagari font
-        html_content = self.html_builder.build_html(records, header)
+        # 1. Build printable HTML
+        if isinstance(records, RoznamaPresentationModel):
+            html_content = self.html_builder.build_html_from_presentation(records)
+        else:
+            html_content = self.html_builder.build_html(records, header)
 
         # 2. Write temporary HTML file
         with tempfile.NamedTemporaryFile("w", suffix=".html", encoding="utf-8", delete=False) as tf:
