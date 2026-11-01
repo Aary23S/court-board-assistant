@@ -151,19 +151,19 @@ body {{
 
 /* Column Width Ratios matching target_roznama_sample.pdf (94.7pt, 301.7pt, 113.8pt) */
 .col-date {{
-    width: 18.6%;
+    width: 15.69%;
     text-align: center;
     font-size: 10pt;
 }}
 
 .col-detail {{
-    width: 59.1%;
+    width: 65.10%;
     text-align: justify;
     font-size: 9.5pt;
 }}
 
 .col-next-date {{
-    width: 22.3%;
+    width: 19.21%;
     text-align: center;
     font-size: 10pt;
 }}

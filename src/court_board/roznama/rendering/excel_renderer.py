@@ -126,10 +126,10 @@ class RoznamaExcelRenderer:
                 ws.row_dimensions[current_row].height = 8
                 current_row += 1
 
-        # Set Column Widths (matching PDF ratios ~ 18.6%, 59.1%, 22.3%)
-        ws.column_dimensions["A"].width = 16  # Col 1
-        ws.column_dimensions["B"].width = 65  # Col 2
-        ws.column_dimensions["C"].width = 18  # Col 3
+        # Set Column Widths (matching Court-Approved dimensions: 1.07 in, 4.44 in, 1.31 in -> 15.69%, 65.10%, 19.21%)
+        ws.column_dimensions["A"].width = 15   # Col 1 (1.07 in)
+        ws.column_dimensions["B"].width = 72   # Col 2 (4.44 in)
+        ws.column_dimensions["C"].width = 17   # Col 3 (1.31 in)
 
         wb.save(str(out_path))
         return out_path

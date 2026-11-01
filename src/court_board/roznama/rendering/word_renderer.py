@@ -84,10 +84,10 @@ class RoznamaWordRenderer:
         section.left_margin = Mm(20)
         section.right_margin = Mm(10)
 
-        # Usable width = 210 - 20 - 10 = 180mm (~7.086 inches / ~510pt)
-        col1_w = Mm(33.5)   # ~18.6%
-        col2_w = Mm(106.5)  # ~59.1%
-        col3_w = Mm(40.0)   # ~22.3%
+        # Court-Approved Column Dimensions: Col 1: 1.07 in, Col 2: 4.44 in, Col 3: 1.31 in (Total = 6.82 in)
+        col1_w = Inches(1.07)
+        col2_w = Inches(4.44)
+        col3_w = Inches(1.31)
 
         font_name = "Lohit Devanagari"
 
