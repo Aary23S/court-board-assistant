@@ -192,11 +192,25 @@ class RoznamaWordRenderer:
             run_n.font.name = font_name
             run_n.font.size = Pt(10)
 
-            # Apply explicit column widths to cells
+            # Explicitly configure Table Grid, Total Width, Fixed Layout and Column Widths
+            total_dxa = int(6.82 * 1440)
+            tblPr = table._tbl.tblPr
+            tblW = tblPr.xpath('w:tblW')
+            if tblW:
+                tblPr.remove(tblW[0])
+            tblPr.append(parse_xml(f'<w:tblW {nsdecls("w")} w:w="{total_dxa}" w:type="dxa"/>'))
+
+            tblLayout = tblPr.xpath('w:tblLayout')
+            if tblLayout:
+                tblPr.remove(tblLayout[0])
+            tblPr.append(parse_xml(f'<w:tblLayout {nsdecls("w")} w:type="fixed"/>'))
+
+            # Set explicit widths on both columns (w:gridCol in tblGrid) and individual cells (w:tcW)
             widths = [col1_w, col2_w, col3_w]
-            for row in table.rows:
-                for c_idx, w in enumerate(widths):
-                    row.cells[c_idx].width = w
+            for col_idx, col in enumerate(table.columns):
+                col.width = widths[col_idx]
+                for cell in col.cells:
+                    cell.width = widths[col_idx]
 
             # 3. Dotted Separator between consecutive hearings (omit after final)
             if idx < total_items - 1:
