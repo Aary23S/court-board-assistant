@@ -1,3 +1,11 @@
+import sys
+from pathlib import Path
+
+# Ensure src directory is on sys.path when running via Streamlit Cloud
+_src_dir = str(Path(__file__).resolve().parent.parent.parent)
+if _src_dir not in sys.path:
+    sys.path.insert(0, _src_dir)
+
 import streamlit as st
 from court_board.ui.state import AppState
 from court_board.ui.components.import_component import render_import_page
