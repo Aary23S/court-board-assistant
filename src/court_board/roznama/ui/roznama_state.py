@@ -301,20 +301,25 @@ class RoznamaState:
 
     def skip_all_checks_and_approve_all(self):
         """
-        Allows the operator to skip manual review checks and proceed directly to export:
+        Allows the operator to skip all manual review checks and proceed directly to export:
         - Marks all records as reviewed.
+        - Clears flagged fidelity records (मजकूर तपासणी).
         - Approves all pending Category C discretionary transformations.
-        - Acknowledges all warnings (empty fields, OCR pages, fidelity defects).
+        - Acknowledges all warnings (empty fields, OCR pages, fidelity defects, document notes).
         """
         for r in self.transformed_records:
             self.reviewed_sequences.add(r.record_sequence)
             self.acknowledge_warning(f"empty_field_rec_{r.record_sequence}")
             self.acknowledge_warning(f"fidelity_defect_rec_{r.record_sequence}")
         
+        self.flagged_fidelity_records.clear()
         self.approve_all_category_c_events()
         
-        if self.document_summary and self.document_summary.pages_requiring_ocr:
-            self.acknowledge_warning("ocr_pages_acknowledgement")
+        if self.document_summary:
+            if self.document_summary.pages_requiring_ocr:
+                self.acknowledge_warning("ocr_pages_acknowledgement")
+            if self.document_summary.extraction_warnings:
+                self.acknowledge_warning("doc_analysis_notes_acknowledgement")
             
         self.validate()
 
@@ -733,7 +738,7 @@ class RoznamaState:
                     self.validation_warnings.append(
                         f"Pages {self.document_summary.pages_requiring_ocr} required OCR / have uncertain quality. (Requires acknowledgement)"
                     )
-            if self.document_summary.extraction_warnings:
+            if self.document_summary.extraction_warnings and "doc_analysis_notes_acknowledgement" not in self.acknowledged_warnings:
                 for w in self.document_summary.extraction_warnings:
                     self.validation_warnings.append(f"Document analysis note: {w}")
 

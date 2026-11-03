@@ -118,7 +118,7 @@ def render_roznama_page(roznama_state: RoznamaState):
         options=[r.record_sequence for r in roznama_state.transformed_records],
         format_func=lambda s: (
             f"Record #{s} — {next(r.today_date for r in roznama_state.transformed_records if r.record_sequence == s)} "
-            f"({'🛑 Category C Review' if (s in roznama_state.category_c_events and any(e['event_id'] not in roznama_state.approved_category_c_events.get(s, set()) for e in roznama_state.category_c_events[s])) else ('⚠️ मजकूर तपासणी' if s in roznama_state.flagged_fidelity_records else ('✅ Reviewed' if s in roznama_state.reviewed_sequences else '⏳ Pending'))})"
+            f"({'🛑 Category C Review' if (s in roznama_state.category_c_events and any(e['event_id'] not in roznama_state.approved_category_c_events.get(s, set()) for e in roznama_state.category_c_events[s])) else ('⚠️ मजकूर तपासणी' if (s in roznama_state.flagged_fidelity_records and f'fidelity_defect_rec_{s}' not in roznama_state.acknowledged_warnings) else ('✅ Reviewed' if s in roznama_state.reviewed_sequences else '⏳ Pending'))})"
         )
     )
 
@@ -243,6 +243,10 @@ def render_roznama_page(roznama_state: RoznamaState):
             any(e['event_id'] not in roznama_state.approved_category_c_events.get(r.record_sequence, set())
                 for e in roznama_state.category_c_events[r.record_sequence])):
             status_label = "🛑 Category C Review"
+
+        # If flagged for fidelity but already marked as reviewed, display as Reviewed
+        if r.record_sequence in roznama_state.reviewed_sequences and f"fidelity_defect_rec_{r.record_sequence}" in roznama_state.acknowledged_warnings:
+            status_label = "✅ Reviewed"
 
         table_data.append({
             "Seq": r.record_sequence,
