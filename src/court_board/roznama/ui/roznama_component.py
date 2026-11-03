@@ -99,12 +99,16 @@ def render_roznama_page(roznama_state: RoznamaState):
     reviewed_count = len(roznama_state.reviewed_sequences)
     progress_val = (reviewed_count / total_recs) if total_recs > 0 else 0.0
 
-    p_col, b_col = st.columns([3, 1])
+    p_col, b_col, skip_col = st.columns([2, 1, 1])
     with p_col:
         st.progress(progress_val, text=f"Reviewed {reviewed_count} of {total_recs} records ({int(progress_val*100)}%)")
     with b_col:
         if st.button("✅ Mark All as Reviewed", use_container_width=True):
             roznama_state.mark_all_reviewed()
+            st.rerun()
+    with skip_col:
+        if st.button("⚡ Skip All & Ready to Download", help="Skip manual checks, mark all as reviewed, approve transformations and enable direct export", use_container_width=True):
+            roznama_state.skip_all_checks_and_approve_all()
             st.rerun()
 
     # Filter / Search / Select Record for Editing
@@ -296,7 +300,13 @@ def render_roznama_page(roznama_state: RoznamaState):
     if eligible:
         st.success("✅ **Eligibility Gate Passed:** Records are fully reviewed, validated, and ready for PDF generation.")
     else:
-        st.info("ℹ️ Complete review of all records and acknowledge any warnings above to enable PDF generation.")
+        info_col, skip_action_col = st.columns([3, 1])
+        with info_col:
+            st.info("ℹ️ Complete review of all records and acknowledge any warnings above to enable export, or skip checks below.")
+        with skip_action_col:
+            if st.button("⚡ Skip Checks & Proceed to Download", type="primary", use_container_width=True):
+                roznama_state.skip_all_checks_and_approve_all()
+                st.rerun()
 
     # -------------------------------------------------------------
     # Step 6: Multi-Format Export (PDF, Excel, Word), Preview & Download

@@ -299,6 +299,25 @@ class RoznamaState:
             self.reviewed_sequences.add(r.record_sequence)
         self.validate()
 
+    def skip_all_checks_and_approve_all(self):
+        """
+        Allows the operator to skip manual review checks and proceed directly to export:
+        - Marks all records as reviewed.
+        - Approves all pending Category C discretionary transformations.
+        - Acknowledges all warnings (empty fields, OCR pages, fidelity defects).
+        """
+        for r in self.transformed_records:
+            self.reviewed_sequences.add(r.record_sequence)
+            self.acknowledge_warning(f"empty_field_rec_{r.record_sequence}")
+            self.acknowledge_warning(f"fidelity_defect_rec_{r.record_sequence}")
+        
+        self.approve_all_category_c_events()
+        
+        if self.document_summary and self.document_summary.pages_requiring_ocr:
+            self.acknowledge_warning("ocr_pages_acknowledgement")
+            
+        self.validate()
+
     def acknowledge_warning(self, warning_key: str):
         self.acknowledged_warnings.add(warning_key)
 
