@@ -53,6 +53,24 @@ class RoznamaWordRenderer:
             tcMar.append(node)
         tcPr.append(tcMar)
 
+    def _apply_run_font(self, run, font_name: str = "Lohit Devanagari"):
+        """
+        Enforces font family across all OpenXML script categories:
+        - w:ascii: Latin / Western text
+        - w:hAnsi: High ANSI text
+        - w:cs: Complex Script (Devanagari, Marathi, Hindi)
+        - w:eastAsia: East Asian / fallback
+        Ensures LibreOffice Writer and MS Word bind the Complex Script font strictly to Lohit Devanagari.
+        """
+        run.font.name = font_name
+        rPr = run._r.get_or_add_rPr()
+        rFonts = rPr.find(qn('w:rFonts'))
+        if rFonts is not None:
+            rFonts.set(qn('w:cs'), font_name)
+            rFonts.set(qn('w:eastAsia'), font_name)
+            rFonts.set(qn('w:hAnsi'), font_name)
+            rFonts.set(qn('w:ascii'), font_name)
+
     def render(
         self,
         presentation_model: Union[RoznamaPresentationModel, List[RoznamaRecord]],
@@ -74,6 +92,23 @@ class RoznamaWordRenderer:
         out_path.parent.mkdir(parents=True, exist_ok=True)
 
         doc = docx.Document()
+
+        # Enforce Lohit Devanagari on Document Default Normal Style
+        try:
+            normal_style = doc.styles['Normal']
+            normal_style.font.name = "Lohit Devanagari"
+            rPr = normal_style.element.get_or_add_rPr()
+            rFonts = rPr.find(qn('w:rFonts'))
+            if rFonts is None:
+                rFonts = parse_xml(f'<w:rFonts {nsdecls("w")} w:ascii="Lohit Devanagari" w:hAnsi="Lohit Devanagari" w:cs="Lohit Devanagari" w:eastAsia="Lohit Devanagari"/>')
+                rPr.append(rFonts)
+            else:
+                rFonts.set(qn('w:cs'), "Lohit Devanagari")
+                rFonts.set(qn('w:eastAsia'), "Lohit Devanagari")
+                rFonts.set(qn('w:hAnsi'), "Lohit Devanagari")
+                rFonts.set(qn('w:ascii'), "Lohit Devanagari")
+        except Exception:
+            pass
 
         # Page Setup: A4 Portrait, Margins: Top 15mm, Bottom 15mm, Left 20mm, Right 10mm
         section = doc.sections[0]
@@ -100,7 +135,7 @@ class RoznamaWordRenderer:
             p_head.paragraph_format.space_after = Pt(3)
             p_head.paragraph_format.keep_with_next = True
             run_head = p_head.add_run(item.case_heading)
-            run_head.font.name = font_name
+            self._apply_run_font(run_head, font_name)
             run_head.font.size = Pt(10.5)
             run_head.font.bold = True
             run_head.font.color.rgb = RGBColor(0, 0, 0)
@@ -135,7 +170,7 @@ class RoznamaWordRenderer:
                 p.paragraph_format.space_before = Pt(2)
                 p.paragraph_format.space_after = Pt(2)
                 run = p.add_run(title)
-                run.font.name = font_name
+                self._apply_run_font(run, font_name)
                 run.font.size = Pt(10)
                 run.font.bold = True
 
@@ -147,7 +182,7 @@ class RoznamaWordRenderer:
             p_d = cell_date.paragraphs[0]
             p_d.alignment = WD_ALIGN_PARAGRAPH.CENTER
             run_d = p_d.add_run(item.hearing_date)
-            run_d.font.name = font_name
+            self._apply_run_font(run_d, font_name)
             run_d.font.size = Pt(10)
 
             # Col 2: Business (Line 1) + Stage (Line 2) + Judge designation
@@ -160,7 +195,7 @@ class RoznamaWordRenderer:
             p_b.paragraph_format.space_before = Pt(0)
             p_b.paragraph_format.space_after = Pt(2)
             run_b = p_b.add_run(item.business_text)
-            run_b.font.name = font_name
+            self._apply_run_font(run_b, font_name)
             run_b.font.size = Pt(9.5)
 
             if item.stage_text:
@@ -169,7 +204,7 @@ class RoznamaWordRenderer:
                 p_s.paragraph_format.space_before = Pt(2)
                 p_s.paragraph_format.space_after = Pt(4)
                 run_s = p_s.add_run(item.stage_text)
-                run_s.font.name = font_name
+                self._apply_run_font(run_s, font_name)
                 run_s.font.size = Pt(9.5)
 
             if item.judge_designation:
@@ -178,7 +213,7 @@ class RoznamaWordRenderer:
                 p_j.paragraph_format.space_before = Pt(6)
                 p_j.paragraph_format.space_after = Pt(2)
                 run_j = p_j.add_run(item.judge_designation)
-                run_j.font.name = font_name
+                self._apply_run_font(run_j, font_name)
                 run_j.font.size = Pt(9)
                 run_j.font.bold = True
 
@@ -189,7 +224,7 @@ class RoznamaWordRenderer:
             p_n = cell_next.paragraphs[0]
             p_n.alignment = WD_ALIGN_PARAGRAPH.CENTER
             run_n = p_n.add_run(item.next_date)
-            run_n.font.name = font_name
+            self._apply_run_font(run_n, font_name)
             run_n.font.size = Pt(10)
 
             # Explicitly configure Table Grid, Total Width, Fixed Layout and Column Widths
