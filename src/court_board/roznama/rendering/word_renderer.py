@@ -60,7 +60,7 @@ class RoznamaWordRenderer:
         - w:hAnsi: High ANSI text
         - w:cs: Complex Script (Devanagari, Marathi, Hindi)
         - w:eastAsia: East Asian / fallback
-        Ensures LibreOffice Writer and MS Word bind the Complex Script font strictly to Lohit Devanagari.
+        Also tags language as Marathi (mr-IN) so LibreOffice Writer recognizes the CTL script.
         """
         run.font.name = font_name
         rPr = run._r.get_or_add_rPr()
@@ -70,6 +70,14 @@ class RoznamaWordRenderer:
             rFonts.set(qn('w:eastAsia'), font_name)
             rFonts.set(qn('w:hAnsi'), font_name)
             rFonts.set(qn('w:ascii'), font_name)
+            
+        lang = rPr.find(qn('w:lang'))
+        if lang is None:
+            lang = parse_xml(f'<w:lang {nsdecls("w")} w:val="mr-IN" w:bidi="mr-IN" w:eastAsia="mr-IN"/>')
+            rPr.append(lang)
+        else:
+            lang.set(qn('w:bidi'), "mr-IN")
+            lang.set(qn('w:val'), "mr-IN")
 
     def render(
         self,
@@ -107,6 +115,14 @@ class RoznamaWordRenderer:
                 rFonts.set(qn('w:eastAsia'), "Lohit Devanagari")
                 rFonts.set(qn('w:hAnsi'), "Lohit Devanagari")
                 rFonts.set(qn('w:ascii'), "Lohit Devanagari")
+
+            lang = rPr.find(qn('w:lang'))
+            if lang is None:
+                lang = parse_xml(f'<w:lang {nsdecls("w")} w:val="mr-IN" w:bidi="mr-IN" w:eastAsia="mr-IN"/>')
+                rPr.append(lang)
+            else:
+                lang.set(qn('w:bidi'), "mr-IN")
+                lang.set(qn('w:val'), "mr-IN")
         except Exception:
             pass
 
